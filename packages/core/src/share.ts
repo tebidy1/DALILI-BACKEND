@@ -1,0 +1,64 @@
+/** أدوات المشاركة — HTML غني للصق في Word/Docs (VIEW-10) ورابط واتساب (VIEW-07). نقية بلا DOM. */
+
+/** النموذج الهيكلي الذي تحتاجه الدالة من GuideDto — core لا يعتمد على حزم أخرى */
+interface HtmlGuideStep {
+  /** الدالة تستهلك العنوان/الملاحظة/النص البديل/اللقطة فقط — بقية حقول العقد تمر سليمة */
+  [field: string]: unknown
+  title: string
+  note?: string
+  /** EDT-13: إن غاب يُستخدم عنوان الخطوة نصًّا بديلًا للصورة */
+  alt?: string
+  screenshot?: { fileId: string; fileUrl?: string; blurRects?: unknown[] } | { missing: true; reason?: string }
+  /** BLK-01: نوع كتلة النداء/الهيدر — غيابه خطوة عادية تُرقَّم */
+  block?: 'tip' | 'alert' | 'header'
+}
+
+export interface HtmlGuide {
+  [field: string]: unknown
+  title: string
+  description?: string
+  steps: HtmlGuideStep[]
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+/**
+ * الدليل كاملًا كـHTML بأنماط مضمّنة وصور مطلقة المصدر — الصق في Word/Google Docs/Confluence
+ * فتظهر الخطوات بصورها. لا نص عربي مضمن هنا؛ كل النصوص من بيانات الدليل وتُهرَّب.
+ */
+export function guideToHtml(guide: HtmlGuide, fileUrl: (fileId: string) => string): string {
+  // BLK-01: ترقيم يُصفّي الكتل محليًّا (share نقي بلا استيراد من guide)
+  let n = 0
+  const steps = guide.steps
+    .map((s) => {
+      if (s.block === 'header')
+        return `<h2 style="font-size:1.2rem;margin:18px 0 0">${esc(s.title)}</h2>`
+      if (s.block === 'tip' || s.block === 'alert') {
+        const bg = s.block === 'tip' ? '#e0f2fe' : '#ffedd5'
+        const bd = s.block === 'tip' ? '#7dd3fc' : '#fdba74'
+        return `<div style="background:${bg};border:1px solid ${bd};border-radius:8px;padding:8px 12px;margin:10px 0"><b>${esc(s.title)}</b>${s.note ? ` — ${esc(s.note)}` : ''}</div>`
+      }
+      n += 1
+      const shot = s.screenshot && !('missing' in s.screenshot) ? s.screenshot : null
+      const img = shot
+        ? `<img src="${esc(fileUrl(shot.fileUrl ? shot.fileUrl.split('/').pop() ?? shot.fileId : shot.fileId))}" alt="${esc(s.alt ?? s.title)}" style="max-width:100%;height:auto;border:1px solid #e2e2e2;border-radius:8px;margin:6px 0" />`
+        : ''
+      const note = s.note ? `<p style="color:#555;margin:4px 0">${esc(s.note)}</p>` : ''
+      return `<div style="margin:0 0 22px"><h2 style="font-size:1.05rem;margin:0">${n}. ${esc(s.title)}</h2>${note}${img}</div>`
+    })
+    .join('')
+  const desc = guide.description ? `<p style="color:#666;font-size:1rem;margin:8px 0 18px">${esc(guide.description)}</p>` : ''
+  return `<div dir="rtl" style="font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,sans-serif;line-height:1.8;max-width:820px"><h1 style="font-size:1.4rem;margin:0 0 6px">${esc(guide.title)}</h1>${desc}${steps}</div>`
+}
+
+/**
+ * رابط واتساب بنص جاهز — بلا رقم فيفتح اختيار جهة الاتصال.
+ * نستخدم `api.whatsapp.com/send?text=` لا `wa.me/?text=`: الصيغة الأخيرة **بلا رقم**
+ * لا تُحوّل بثبات على سطح المكتب (تقف عند صفحة wa.me)، بينما api.whatsapp.com
+ * يفتح منتقي جهة الاتصال على الويب ويطلق التطبيق على الجوال بثبات.
+ */
+export function whatsappUrl(title: string, url: string): string {
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(`${title}\n${url}`)}`
+}

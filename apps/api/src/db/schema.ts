@@ -1,0 +1,125 @@
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+
+/** مرآة الأنواع لجداول BOOTSTRAP_SQL — الاستعلامات عبر drizzle، الإنشاء عبر الـDDL */
+
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  expiresAt: text('expires_at').notNull(),
+})
+
+export const workspaces = sqliteTable('workspaces', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  ownerId: text('owner_id').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+export const workspaceMembers = sqliteTable('workspace_members', {
+  workspaceId: text('workspace_id').notNull(),
+  userId: text('user_id').notNull(),
+  role: text('role').notNull(),
+  department: text('department').notNull().default(''),
+  /** المرحلة د (ترحيل 0010): فريق العضو — كيان بدل «القسم» الحر؛ الحذف يعيده بلا فريق */
+  teamId: text('team_id'),
+})
+
+/** المرحلة د (WS-08 — ترحيل 0010): فرق المساحة — «القسم» الحر رُقّي إلى كيان */
+export const teams = sqliteTable('teams', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull(),
+  name: text('name').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+export const files = sqliteTable('files', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  mime: text('mime').notNull(),
+  bytes: integer('bytes').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+export const guides = sqliteTable('guides', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull(),
+  userId: text('user_id').notNull(),
+  title: text('title').notNull(),
+  data: text('data').notNull(),
+  /** عمودان مشتقان (PERF-05): القوائم لا تفكّ JSON الكامل أبدًا */
+  stepCount: integer('step_count').notNull().default(0),
+  thumbFileId: text('thumb_file_id'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  /** LIB-02..06: تنظيم المكتبة */
+  folderId: text('folder_id'),
+  starred: integer('starred').notNull().default(0),
+  tags: text('tags').notNull().default('[]'),
+  deletedAt: text('deleted_at'),
+  /** WS-02 (ترحيل 0008): خاص افتراضيًا — «workspace» بعد نشر صريح يراه أعضاء المساحة */
+  visibility: text('visibility').notNull().default('private'),
+  /** WS-05 (ترحيل 0008): موقع مشتق من أول خطوة — صغير بلا www؛ الترشيح بلا فكّ JSON */
+  site: text('site').notNull().default(''),
+})
+
+/** WS-01 (ترحيل 0008): دعوات برابط يُرسل واتساب — بلا SMTP */
+export const invites = sqliteTable('invites', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull(),
+  email: text('email').notNull(),
+  role: text('role').notNull(),
+  token: text('token').notNull().unique(),
+  createdAt: text('created_at').notNull(),
+  acceptedAt: text('accepted_at'),
+})
+
+/** WS-04 (ترحيل 0008): بوكمارك لكل عضو — منفصل عن نجمة المنشئ LIB-03 */
+export const bookmarks = sqliteTable('bookmarks', {
+  userId: text('user_id').notNull(),
+  guideId: text('guide_id')
+    .notNull()
+    .references(() => guides.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at').notNull(),
+})
+
+export const folders = sqliteTable('folders', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  name: text('name').notNull(),
+  createdAt: text('created_at').notNull(),
+  /** المرحلة هـ (ترحيل 0011): المجلدات مساحية — userId يبقى صانعها للتاريخ */
+  workspaceId: text('workspace_id'),
+})
+
+export const shares = sqliteTable('shares', {
+  guideId: text('guide_id').primaryKey(),
+  token: text('token').notNull(),
+  createdAt: text('created_at').notNull(),
+  revokedAt: text('revoked_at'),
+  /** VIEW-06: عدّاد مشاهدات مجمّع — لا تعقّب أفراد، رقم واحد فقط */
+  views: integer('views').notNull().default(0),
+})
+
+/** GM-05: تعليقات الخطوات — الضيف برابط المشاركة والمالك من المحرر في جدول واحد */
+export const stepComments = sqliteTable('step_comments', {
+  id: text('id').primaryKey(),
+  guideId: text('guide_id')
+    .notNull()
+    .references(() => guides.id, { onDelete: 'cascade' }),
+  stepId: text('step_id').notNull(),
+  /** null = تعليق أصلي؛ غيره رد على ذلك الأصل (عمق واحد) */
+  parentId: text('parent_id'),
+  author: text('author').notNull().default(''),
+  isOwner: integer('is_owner').notNull().default(0),
+  body: text('body').notNull(),
+  resolved: integer('resolved').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
