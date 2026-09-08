@@ -56,7 +56,7 @@ describe('الترحيلات (OPS-03)', () => {
       CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE guides (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, user_id TEXT NOT NULL, title TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-      INSERT INTO users VALUES ('u1', 'old@dalili.sa', 'hash', '2026-01-01T00:00:00Z');
+      INSERT INTO users (id, email, password_hash, created_at) VALUES ('u1', 'old@dalili.sa', 'hash', '2026-01-01T00:00:00Z');
       INSERT INTO workspaces VALUES ('w1', 'مساحتي', 'u1', '2026-01-01T00:00:00Z');
       INSERT INTO guides VALUES ('g1', 'w1', 'u1', 'دليل قديم', '{"id":"g1","steps":[{"a":1},{"b":2}]}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
     `)
@@ -72,6 +72,30 @@ describe('الترحيلات (OPS-03)', () => {
     expect(sc.step_count).toBe(2)
     const recorded = (sqlite.prepare('SELECT count(*) AS c FROM _migrations').get() as { c: number }).c
     expect(recorded).toBe(listMigrations().length)
+    sqlite.close()
+  })
+
+  it('ترحيل 0015 (BKL-01): عمود kind يُضاف والأدلة القائمة تأخذ guide بلا لمس محتواها', () => {
+    const dir = tmpDir()
+    const legacy = new Database(path.join(dir, 'dalili.db'))
+    legacy.pragma('journal_mode = WAL')
+    legacy.exec(`
+      CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE workspaces (id TEXT PRIMARY KEY, name TEXT NOT NULL, owner_id TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE guides (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, user_id TEXT NOT NULL, title TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      INSERT INTO users (id, email, password_hash, created_at) VALUES ('u1', 'k@dalili.sa', 'hash', '2026-01-01T00:00:00Z');
+      INSERT INTO workspaces VALUES ('w1', 'مساحتي', 'u1', '2026-01-01T00:00:00Z');
+      INSERT INTO guides VALUES ('g1', 'w1', 'u1', 'دليل قائم', '{"id":"g1","title":"دليل قائم","steps":[]}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z');
+    `)
+    legacy.close()
+
+    const { sqlite } = createDb(dir)
+    const cols = new Set((sqlite.prepare('PRAGMA table_info(guides)').all() as { name: string }[]).map((c) => c.name))
+    expect(cols.has('kind'), 'عمود kind مفقود بعد الترقية').toBe(true)
+    const row = sqlite.prepare("SELECT kind, data FROM guides WHERE id = 'g1'").get() as { kind: string; data: string }
+    expect(row.kind).toBe('guide')
+    // التوسيع جمعي: محتوى الدليل القائم لم يُلمس
+    expect(JSON.parse(row.data).title).toBe('دليل قائم')
     sqlite.close()
   })
 
@@ -91,7 +115,7 @@ describe('الترحيلات (OPS-03)', () => {
     }
     // بيانات قبلية: عضو بدور member القديم + دليل أول خطوته لها رابط بلا site
     legacy.exec(`
-      INSERT INTO users VALUES ('u8', 'old8@dalili.sa', 'hash', '2026-01-01T00:00:00Z');
+      INSERT INTO users (id, email, password_hash, created_at) VALUES ('u8', 'old8@dalili.sa', 'hash', '2026-01-01T00:00:00Z');
       INSERT INTO workspaces VALUES ('w8', 'مساحة 0008', 'u8', '2026-01-01T00:00:00Z');
       INSERT INTO workspace_members VALUES ('w8', 'u8', 'member', '');
       INSERT INTO guides (id, workspace_id, user_id, title, data, created_at, updated_at)
@@ -134,7 +158,7 @@ describe('الترحيلات (OPS-03)', () => {
       })()
     }
     legacy
-      .prepare("INSERT INTO users VALUES ('u9', 'old9@dalili.sa', 'hash', '2026-01-01T00:00:00Z')")
+      .prepare("INSERT INTO users (id, email, password_hash, created_at) VALUES ('u9', 'old9@dalili.sa', 'hash', '2026-01-01T00:00:00Z')")
       .run()
     legacy
       .prepare("INSERT INTO workspaces VALUES ('w9', 'مساحة 0009', 'u9', '2026-01-01T00:00:00Z')")
@@ -149,6 +173,41 @@ describe('الترحيلات (OPS-03)', () => {
     const { sqlite } = createDb(dir)
     const site = sqlite.prepare("SELECT site FROM guides WHERE id = 'g9'").get() as { site: string }
     expect(site.site).toBe('crm.example')
+    sqlite.close()
+  })
+})
+
+/** VER-01: ترحيل 0016 — جدول guide_versions + الفهرس المركّب */
+describe('ترحيل 0016: guide_versions', () => {
+  it('يُنشئ الجدول والفهرس', () => {
+    const dir = tmpDir()
+    const { sqlite } = createDb(dir)
+    const row = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='guide_versions'")
+      .get() as { name: string } | undefined
+    expect(row?.name).toBe('guide_versions')
+    const idx = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_guide_versions_guide_created'")
+      .get() as { name: string } | undefined
+    expect(idx?.name).toBe('idx_guide_versions_guide_created')
+    // الأعمدة السبعة كلها موجودة
+    const cols = new Set(
+      (sqlite.prepare('PRAGMA table_info(guide_versions)').all() as { name: string }[]).map((c) => c.name),
+    )
+    for (const c of ['id', 'guide_id', 'author_id', 'title', 'data', 'step_count', 'created_at']) {
+      expect(cols.has(c), `عمود مفقود: ${c}`).toBe(true)
+    }
+    sqlite.close()
+  })
+
+  it('السطر يعلن REFERENCES … ON DELETE CASCADE', () => {
+    // نقرأ SQL التعريف نفسه — أرخص وأصدق من إعادة توليد صف workspace كامل
+    const dir = tmpDir()
+    const { sqlite } = createDb(dir)
+    const def = (sqlite
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='guide_versions'")
+      .get() as { sql: string }).sql
+    expect(def).toMatch(/REFERENCES\s+guides\s*\(\s*id\s*\)\s+ON\s+DELETE\s+CASCADE/i)
     sqlite.close()
   })
 })

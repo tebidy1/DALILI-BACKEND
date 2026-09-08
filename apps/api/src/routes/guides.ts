@@ -6,13 +6,14 @@ import { bookmarks, folders, guides, shares, stepComments } from '../db/schema'
 import type { Auth } from '../auth/session'
 import { zAppendSteps, zCreateGuide, zGuideMeta, zListGuidesQuery, type GuideDto } from '@dalili/shared'
 import { deleteGuideIndex, indexGuide } from '../search/index'
-import { canAppendSteps, primarySiteOf } from '@dalili/core'
+import { canAppendSteps, embedIdsOf, primarySiteOf } from '@dalili/core'
 import { memberRole } from '../ws/roles'
 import { embedGuideSafe } from '../embeddings/store'
 import type { EmbeddingProvider } from '../embeddings/provider'
 import { makeGuideHelpers, normalizeTag, parseTags } from './guides-shared'
 import { registerTranscribeRoute } from './transcribe'
 import { registerSharingRoutes } from './sharing'
+import { registerVersionsRoutes } from './guides-versions'
 import type { SttProvider } from '../stt/provider'
 import type { Db } from '../db/client'
 
@@ -69,6 +70,8 @@ export function registerGuideRoutes(
           createdAt: now,
           updatedAt: now,
           site: primarySiteOf(guide.steps),
+          // BKL-01: النوع عمودًا مشتقًا — غيابه من العقد يعني دليلًا
+          kind: guide.kind ?? 'guide',
         })
         .run()
       indexGuide(sqlite, guide)
@@ -94,14 +97,17 @@ export function registerGuideRoutes(
     if (!row) {
       return reply.code(404).send({ errorAr: 'الدليل غير موجود' })
     }
+    // BKL-01: السلة حقيقة يقولها الخادم — بطاقة الدليل المضمّن لا تخمّنها من غياب صف
+    const deletedAt = row.deletedAt ?? undefined
     // إعدادات المشاركة والتنظيم للمالك وحده — الغير يرى المحتوى فقط
     if (row.userId !== user.id) {
-      return { guide: JSON.parse(row.data) as GuideDto, share: null }
+      return { guide: JSON.parse(row.data) as GuideDto, share: null, deletedAt }
     }
     const share = shareInfoFor(id)
     return {
       guide: JSON.parse(row.data) as GuideDto,
       share,
+      deletedAt,
       // LIB-03: المحرر يعرض الوسوم ويحررها — بيانات تنظيم بجانب المحتوى
       meta: { starred: !!row.starred, folderId: row.folderId, tags: parseTags(row.tags) },
     }
@@ -119,6 +125,14 @@ export function registerGuideRoutes(
     const parsed = zCreateGuide.safeParse(req.body)
     if (!parsed.success) {
       return reply.code(400).send({ errorAr: 'دليل غير صالح بعد التحرير' })
+    }
+    // BKL-01 (E-BKL-02): الواجهة ترشّح الكرّاسات من منتقي التضمين، لكن الواجهة ليست
+    // حارسًا — كرّاسة داخل كرّاسة حالةٌ بلا معنى تُرفض هنا
+    for (const embedId of embedIdsOf(parsed.data.guide.steps)) {
+      const target = db.select({ kind: guides.kind }).from(guides).where(eq(guides.id, embedId)).get()
+      if (target?.kind === 'booklet') {
+        return reply.code(400).send({ errorAr: 'لا تُضمّ كرّاسة داخل كرّاسة' })
+      }
     }
     const now = new Date().toISOString()
     const guide: GuideDto = { ...parsed.data.guide, id, createdAt: row.createdAt, updatedAt: now }
@@ -228,6 +242,8 @@ export function registerGuideRoutes(
           tags: row.tags,
           deletedAt: null,
           site: primarySiteOf(copy.steps),
+          // BKL-01: نسخة الكرّاسة تبقى كرّاسة
+          kind: row.kind,
         })
         .run()
       indexGuide(sqlite, copy, tags)
@@ -362,4 +378,7 @@ export function registerGuideRoutes(
 
   // المشاركة وعرضها العام — مسارها المستقل (نفس السلوك حرفًا)
   registerSharingRoutes(app, db, auth, publicBase, { ownedGuideOr404 })
+
+  // VER-01: سجل الإصدارات — POST يلتقط عند «تم» + GET قائمة + GET نسخة (المالك وحده)
+  registerVersionsRoutes(app, db, sqlite, auth, { ownedGuideOr404 })
 }

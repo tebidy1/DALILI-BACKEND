@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { normalizeForIndex } from '@dalili/core'
+import { normalizeForIndex, richToPlain, urlTokens } from '@dalili/core'
 import type { GuideDto } from '@dalili/shared'
 
 /**
@@ -49,19 +49,18 @@ function rowsOfGuide(guide: GuideDto, tags: string[]): IndexRow[] {
   guide.steps.forEach((s, i) => {
     if (s.title) rows.push({ guideId: guide.id, stepId: s.id, stepNo: i + 1, field: 'step_title', raw: s.title })
     if (s.note) rows.push({ guideId: guide.id, stepId: s.id, stepNo: i + 1, field: 'note', raw: s.note })
+    // BKL-01: نص كتلة الكرّاسة المنسّق يدخل الفهرس كـnote — لا حقل جديد في العقد،
+    // فتُوجد الكرّاسة بالبحث الحرفي والدلالي كأي دليل
+    if (s.rich?.length) {
+      const richRaw = richToPlain(s.rich)
+      if (richRaw) rows.push({ guideId: guide.id, stepId: s.id, stepNo: i + 1, field: 'note', raw: richRaw })
+    }
     if (s.pageTitle) rows.push({ guideId: guide.id, stepId: s.id, stepNo: i + 1, field: 'page_title', raw: s.pageTitle })
     if (s.url) {
-      // النطاق والمسار مقسّمين لرموز قابلة للمطابقة
-      let host = ''
-      let path = ''
-      try {
-        const u = new URL(s.url)
-        host = u.hostname.replace(/\./g, ' ')
-        path = u.pathname.split(/[^A-Za-z0-9\u0600-\u06FF]+/).filter(Boolean).join(' ')
-      } catch {
-        path = s.url
-      }
-      const raw = `${host} ${path}`.trim()
+      // SRCH-04 تطوّر: المضيف + رموز الشاشة (مسار + استعلام + hash) عبر مُجزّئ core الموحّد،
+      // فتدخل هوية شاشة أودو (التي تعيش في الـhash) الفهرسَ، والأرقام المتغيّرة تُسقَط
+      const { host, screen } = urlTokens(s.url)
+      const raw = [host, ...screen].join(' ').trim()
       if (raw) rows.push({ guideId: guide.id, stepId: s.id, stepNo: i + 1, field: 'url', raw })
     }
   })

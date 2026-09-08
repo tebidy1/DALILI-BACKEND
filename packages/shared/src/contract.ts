@@ -74,6 +74,28 @@ export const zAnchorCandidate = z.discriminatedUnion('k', [
   z.object({ k: z.literal('path'), v: z.string().min(1).max(600) }),
 ])
 
+/**
+ * BKL-01: النص المنسّق كتمثيل مُهيكل لا HTML — أمان بالبناء لا بتنظيف لاحق.
+ * الكرّاسة تُشارَك برابط عام يفتحه ضيف، وHTML مخزَّن يعني خطر XSS دائمًا.
+ */
+export const zTextRun = z.object({
+  text: z.string().max(5000, 'قطعة النص لا تتجاوز 5000 حرف'),
+  b: z.boolean().optional(),
+  i: z.boolean().optional(),
+  href: z.string().url('رابط غير صالح').optional(),
+})
+export const zRichPara = z.object({
+  para: z.enum(['p', 'h2', 'h3', 'ul', 'ol']),
+  runs: z.array(zTextRun).max(200),
+})
+export const zRichText = z.array(zRichPara).max(200)
+
+/** BKL-01: مرجع حيّ لدليل مضمّن — المعرّف فقط، فيتبع التضمينُ تحديثاتِ الدليل */
+export const zGuideEmbed = z.object({
+  guideId: z.string().min(1, 'معرّف الدليل المضمّن مطلوب'),
+  expanded: z.boolean(),
+})
+
 export const zStep = z.object({
   id: z.string(),
   kind: zStepKind,
@@ -94,8 +116,12 @@ export const zStep = z.object({
   pageTitle: z.string(),
   ts: z.number(),
   screenshot: zScreenshot.optional(),
-  /** BLK-01: نوع كتلة النداء/الهيدر — اختياري جمعي (الأدلة القديمة صالحة) */
-  block: z.enum(['tip', 'alert', 'header']).optional(),
+  /** BLK-01 + BKL-01: نوع الكتلة — اختياري جمعي (الأدلة القديمة صالحة) */
+  block: z.enum(['tip', 'alert', 'header', 'text', 'embed', 'divider', 'link', 'image', 'video']).optional(),
+  /** BKL-01: محتوى كتلة النص (block='text') */
+  rich: zRichText.optional(),
+  /** BKL-01: الدليل المضمّن (block='embed') */
+  embed: zGuideEmbed.optional(),
   /** VOX-09 «ميك الخطوة»: تعليق صوتي مدموج مع الخطوة — اختياري جمعي (الأدلة القديمة صالحة).
    * ‏pending = الصوت محفوظ محليًا ولم يُرفع/يُفرَّغ بعد (فشل الخدمة لا يفقد الصوت أبدًا) */
   voice: zStepVoice.optional(),
@@ -116,6 +142,8 @@ export const zAudioMeta = z.object({
 export const zGuide = z.object({
   id: z.string(),
   schemaVersion: z.literal(1),
+  /** BKL-01: نوع المستند — غيابه دليل. توسيع جمعي بلا رفع schemaVersion */
+  kind: z.enum(['guide', 'booklet']).optional(),
   title: z.string(),
   description: z.string().max(2000, 'الوصف لا يتجاوز 2000 حرف').optional(),
   locale: z.literal('ar'),
@@ -133,12 +161,20 @@ export type AnnotationDto = z.infer<typeof zAnnotation>
 export type TargetMarkDto = z.infer<typeof zTargetMark>
 export type AudioMetaDto = z.infer<typeof zAudioMeta>
 export type AnchorCandidateDto = z.infer<typeof zAnchorCandidate>
+export type TextRunDto = z.infer<typeof zTextRun>
+export type RichParaDto = z.infer<typeof zRichPara>
+export type RichTextDto = z.infer<typeof zRichText>
+export type GuideEmbedDto = z.infer<typeof zGuideEmbed>
 
 export const zRegister = z.object({
   email: z.string().email('بريد إلكتروني غير صالح'),
   password: z.string().min(8, 'كلمة المرور 8 أحرف على الأقل'),
 })
 export const zLogin = zRegister
+
+/** مزامنة الثيم (2026-09-06): الاختيار على الخادم لكل مستخدم — الموقع والامتداد يتبعانه */
+export const zTheme = z.object({ theme: z.enum(['brand', 'classic']) })
+export type ThemeChoiceDto = z.infer<typeof zTheme>['theme']
 
 export const zCreateGuide = z.object({ guide: zGuide })
 
@@ -159,6 +195,8 @@ export interface GuideSummaryDto {
   createdAt: string
   updatedAt: string
   stepCount: number
+  /** BKL-01: يميّز بطاقة الكرّاسة في المكتبة — يأتي من عمود مشتق لا من فكّ JSON (قانون PERF-05) */
+  kind: 'guide' | 'booklet'
   shared: boolean
   shareUrl?: string
   /** PERF-02: معرّف مصغّرة أول لقطة — القوائم تعرضها لا الأصل؛ PNG بلا مصغّة */
@@ -169,9 +207,11 @@ export interface GuideSummaryDto {
   tags: string[]
   /** LIB-06: موجود فقط في عرض السلة */
   deletedAt?: string
-  /** GM-05: تعليقات الخطوات — الكلي لشارة المكتبة، والمفتوحة تنبّه صاحب الدليل للرد */
+  /** GM-05: تعليقات الدليل — الكلي لشارة المكتبة، والمفتوحة تنبّه صاحب الدليل للرد */
   commentCount: number
   openCommentCount: number
+  /** GM-05 تطوّر: المشكلات الأصلية غير المحلولة — الشارة الحمراء البارزة (أخطر من التعليق العام) */
+  openIssueCount: number
   /** WS-02: الرؤية — خاص افتراضيًا و«workspace» بعد نشر صريح يراه أعضاء المساحة */
   visibility: 'private' | 'workspace'
   /** WS-05: موقع الدليل المشتق (مضيف أول خطوة، صغير بلا www) — فارغ إن لا رابط */
@@ -198,11 +238,19 @@ export interface GuideDetailsDto {
   share: ShareInfoDto | null
   /** LIB-03: بيانات التنظيم للمحرر — الوسوم تُعرض وتُحرَّر من هناك */
   meta?: { starred: boolean; folderId: string | null; tags: string[] }
+  /** LIB-06 + BKL-01: وقت دخول السلة — حضوره يميّز «في السلة» عن «غير موجود» (٤٠٤) */
+  deletedAt?: string
 }
 
 export interface PublicGuideDto {
   guide: GuideDto
   sharedAt: string
+  /**
+   * BKL-01: أدلة الكرّاسة المضمّنة، مصرَّح بها عبر **هذا التوكن وحده** —
+   * لا تصير عامة ولا تظهر في قائمة أو بحث، وسحب الرابط يقطعها فورًا.
+   * تغيب للدليل العادي، ويغيب منها المحذوف (العميل يعرض بطاقة صادقة).
+   */
+  embeds?: Record<string, GuideDto>
 }
 
 /** VOX-05: تفريغ الصوت إلى نص — اقتراح نصّي لكل خطوة لها كلام في مقطعها */
@@ -271,6 +319,8 @@ export interface LibraryOverviewDto {
   workspaceName: string
   myRole: 'admin' | 'creator' | 'viewer'
   myEmail: string
+  /** خيار الثيم المحفوظ لهذا المستخدم — الموقع والامتداد يقرآنه عند الإقلاع */
+  myTheme: ThemeChoiceDto
   counts: {
     /** كل ما يمكن للعضو رؤيته (مَلكي + منشور المساحة) خارج السلة */
     all: number
@@ -289,8 +339,10 @@ export interface MineReportDto {
   published: number
   /** إجمالي مشاهدات روابط المشاركة الحية (VIEW-06) */
   views: number
-  /** تعليقات أصلية غير محلولة تنتظر ردًا (GM-05) */
+  /** تعليقات أصلية غير محلولة تنتظر ردًا (GM-05) — الكلي (مشكلات + تعليقات عامة) */
   openComments: number
+  /** GM-05 تطوّر: المشكلات المفتوحة وحدها — الرقم الأحمر البارز الذي يحرّك المُنشئ للمراجعة */
+  openIssues: number
 }
 
 export interface FolderDto {
@@ -317,12 +369,21 @@ export const zGuideMeta = z.object({
   visibility: z.enum(['private', 'workspace']).optional(),
 })
 
-// ——— تعليقات الخطوات (GM-05) ———
+// ——— تعليقات الدليل (GM-05 تطوّر: مستوى الدليل + نوعان) ———
 
-/** تعليق واحد كما يرده الخادم — الضيف بلا هوية والمالك بعلامة صاحب الدليل */
+/** نوع التعليق: «مشكلة» تحتاج إصلاحًا (شارة حمراء + عدّاد تنتظر ردًا) أو «تعليق» عام أخف */
+export const zCommentKind = z.enum(['issue', 'note'])
+export type CommentKind = z.infer<typeof zCommentKind>
+
+/**
+ * تعليق واحد كما يرده الخادم — الضيف بلا هوية والمالك بعلامة صاحب الدليل.
+ * على مستوى الدليل: stepId سنتينل «بلا خطوة» ('')؛ يبقى الحقل لتعليقات قديمة مرتبطة بخطوة.
+ */
 export const zStepComment = z.object({
   id: z.string().min(1),
-  stepId: z.string().min(1),
+  /** '' = تعليق على مستوى الدليل (الجديد)؛ غيره تعليق قديم مرتبط بخطوة */
+  stepId: z.string(),
+  kind: zCommentKind,
   /** null = تعليق أصلي يفتح خيطًا؛ غيره رد على ذلك الأصل (عمق واحد) */
   parentId: z.string().nullable(),
   author: z.string().max(40),
@@ -335,9 +396,9 @@ export const zStepComment = z.object({
 })
 export type StepCommentDto = z.infer<typeof zStepComment>
 
-/** إنشاء تعليق: الضيف عبر رابط المشاركة والمالك من المحرر — نفس العقد */
+/** إنشاء تعليق على مستوى الدليل: الضيف عبر رابط المشاركة والمالك من المحرر — نفس العقد */
 export const zCreateComment = z.object({
-  stepId: z.string().min(1),
+  kind: zCommentKind,
   body: z.string().trim().min(1, 'التعليق فارغ').max(2000, 'التعليق 2000 حرفًا كحد أقصى'),
   author: z.string().trim().max(40, 'الاسم 40 حرفًا كحد أقصى').optional(),
   parentId: z.string().min(1).optional(),
@@ -382,20 +443,28 @@ export const zSuggestQuery = z.object({
 
 // ——— الاكتشاف حسب الصفحة (SRCH-04) ———
 
-/** شارة الامتداد: عدد أدلة المالك على نطاق التبويب النشط */
+/** شارة الامتداد: أدلة المالك على نطاق التبويب النشط + رموز الشاشة الحالية للترتيب */
 export const zDiscoverQuery = z.object({
   site: z.string().min(3, 'نطاق غير صالح').max(200),
+  /** SRCH-04 تطوّر: رموز الشاشة الحالية (مسافات) — تُرتّب أدلة الشاشة أولًا */
+  screen: z.string().max(400).optional(),
 })
 
 export type DiscoverGuideDto = {
   id: string
   title: string
   updatedAt: string
+  /** المشاهدات المجمّعة — الأكثر مشاهدة يُرتَّب أولًا داخل مجموعته */
+  views: number
 }
 
 export type DiscoverResponseDto = {
+  /** إجمالي أدلة الموقع (لشارة العدد) */
   count: number
-  guides: DiscoverGuideDto[]
+  /** أدلة تطابق الشاشة الحالية — الأكثر مشاهدة أولًا */
+  onScreen: DiscoverGuideDto[]
+  /** بقية أدلة الموقع — الأكثر مشاهدة أولًا */
+  onSite: DiscoverGuideDto[]
 }
 
 export type SearchHitDto = {
@@ -513,4 +582,30 @@ export const zAcceptInviteReq = z.object({
   password: z.string().min(8, 'كلمة المرور 8 أحرف على الأقل'),
 })
 export type AcceptInviteReq = z.infer<typeof zAcceptInviteReq>
+
+/** VER-01: ملخّص إصدار لقائمة السجل — بلا data (JSON قد يكون كبيرًا). القوائم لا تفكّ JSON (PERF-05). */
+export const zVersionSummary = z.object({
+  id: z.string().min(1),
+  createdAt: z.string(),
+  authorId: z.string().min(1),
+  stepCount: z.number().int().nonnegative(),
+  title: z.string(),
+})
+export type VersionSummaryDto = z.infer<typeof zVersionSummary>
+
+/** VER-01: قائمة السجل — من الأحدث للأقدم */
+export const zListVersions = z.object({
+  items: z.array(zVersionSummary),
+})
+export type ListVersionsDto = z.infer<typeof zListVersions>
+
+/** VER-01: تفاصيل نسخة كاملة — نفس شكل GuideDto ليعيد استعمال العارض بلا فرع */
+export const zGuideVersionDetails = z.object({
+  id: z.string().min(1),
+  guideId: z.string().min(1),
+  createdAt: z.string(),
+  authorId: z.string().min(1),
+  guide: zGuide,
+})
+export type GuideVersionDetailsDto = z.infer<typeof zGuideVersionDetails>
 

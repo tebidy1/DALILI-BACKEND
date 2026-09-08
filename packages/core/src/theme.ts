@@ -47,6 +47,42 @@ export const DARK: Tokens = {
   line: '#343330',
 }
 
+/**
+ * مزامنة الثيم (2026-09-06): مجموعة «الهوية الجديدة» — حبر ليلي ورمل ورقي
+ * (docs/brand-identity.md) بجانب الجرافيت، والاختيار يخزَّن على الخادم لكل
+ * مستخدم فيتبعه الموقع والامتداد معًا. danger يبقى وظيفيًا في المجموعتين.
+ */
+export const BRAND: Tokens = {
+  brand: '#16324F',
+  brandBright: '#1F4266',
+  accent: '#16324F',
+  finish: '#16324F',
+  danger: '#C4453D',
+  ground: '#F7F4EE',
+  surface: '#FFFFFF',
+  surface2: '#F1EFE8',
+  ink: '#1C2B33',
+  muted: '#5A6B75',
+  line: '#E3DDD2',
+}
+
+export const BRAND_DARK: Tokens = {
+  brand: '#A9C0D6',
+  brandBright: '#BFD2E2',
+  accent: '#A9C0D6',
+  finish: '#A9C0D6',
+  danger: '#E27B72',
+  ground: '#0F1E2E',
+  surface: '#142434',
+  surface2: '#1B3040',
+  ink: '#E8EDF2',
+  muted: '#8FA3B3',
+  line: '#263B50',
+}
+
+/** اختيار الثيم — classic = الجرافيت القديم (السلوك التاريخي)، brand = الهوية الجديدة */
+export type ThemeTokensChoice = 'brand' | 'classic'
+
 function camelToKebab(s: string): string {
   return s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
 }
@@ -57,10 +93,12 @@ function vars(t: Tokens): string {
     .join(';')
 }
 
-/** كتلة CSS تعرّف متغيّرات --dl-* على المُحدِّد، مع تجاوز داكن حسب تفضيل النظام. */
-export function tokensCss(selector: string): string {
+/** كتلة CSS تعرّف متغيّرات --dl-* على المُحدِّد، مع تجاوز داكن حسب تفضيل النظام.
+ *  الافتراضي classic (الجرافيت القديم) حفاظًا على سلوك كل المستدعين القديمين. */
+export function tokensCss(selector: string, choice: ThemeTokensChoice = 'classic'): string {
+  const [light, dark] = choice === 'brand' ? [BRAND, BRAND_DARK] : [LIGHT, DARK]
   return (
-    `${selector}{${vars(LIGHT)}}` +
-    `@media (prefers-color-scheme: dark){${selector}{${vars(DARK)}}}`
+    `${selector}{${vars(light)}}` +
+    `@media (prefers-color-scheme: dark){${selector}{${vars(dark)}}}`
   )
 }

@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import type { FastifyInstance } from 'fastify'
-import { shares } from '../db/schema'
+import { embedIdsOf } from '@dalili/core'
+import { guides, shares } from '../db/schema'
 import type { Auth } from '../auth/session'
 import type { GuideDto } from '@dalili/shared'
 import { activeShare } from './guides-shared'
@@ -68,6 +69,20 @@ export function registerSharingRoutes(
     if (!hit) {
       return reply.code(404).send({ errorAr: 'الرابط غير موجود أو تم سحبه' })
     }
-    return { guide: JSON.parse(hit.guide.data) as GuideDto, sharedAt: hit.share.createdAt }
+    const guide = JSON.parse(hit.guide.data) as GuideDto
+    // BKL-01: قاعدة الوصول الموحّدة — توكن الكرّاسة يمنح قراءة أدلتها المضمّنة
+    // **عبره وحده**. لا تصير الأدلة عامة ولا تدخل قائمة أو بحثًا، و activeShare
+    // أعلاه هو البوابة: سحب الرابط أو دخول السلة يقطع الوصول فورًا.
+    // الدليل المحذوف يغيب بصمت من embeds ويعرضه العميل ببطاقة صادقة (E-BKL-01).
+    if (hit.guide.kind === 'booklet') {
+      const embeds: Record<string, GuideDto> = {}
+      for (const embedId of embedIdsOf(guide.steps)) {
+        const row = db.select().from(guides).where(eq(guides.id, embedId)).get()
+        if (!row || row.deletedAt) continue
+        embeds[embedId] = JSON.parse(row.data) as GuideDto
+      }
+      return { guide, sharedAt: hit.share.createdAt, embeds }
+    }
+    return { guide, sharedAt: hit.share.createdAt }
   })
 }

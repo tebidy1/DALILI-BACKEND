@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS step_comments (
   id TEXT PRIMARY KEY,
   guide_id TEXT NOT NULL REFERENCES guides(id) ON DELETE CASCADE,
   step_id TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'note',
   parent_id TEXT,
   author TEXT NOT NULL DEFAULT '',
   is_owner INTEGER NOT NULL DEFAULT 0,

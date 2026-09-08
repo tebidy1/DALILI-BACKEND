@@ -17,6 +17,7 @@ export function registerCommentRoutes(app: FastifyInstance, db: Db, auth: Auth) 
     return {
       id: row.id,
       stepId: row.stepId,
+      kind: row.kind === 'issue' ? 'issue' : 'note',
       parentId: row.parentId,
       author: row.author,
       isOwner: !!row.isOwner,
@@ -37,25 +38,21 @@ export function registerCommentRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       .map(toDto)
   }
 
-  /** إدخال تعليق بعد التحقق الكامل — مشترك بين مسار الضيف ومسار المالك */
+  /** إدخال تعليق على مستوى الدليل بعد التحقق — مشترك بين مسار الضيف ومسار المالك */
   function insertComment(
     reply: import('fastify').FastifyReply,
     guideRow: typeof guides.$inferSelect,
-    input: { stepId: string; body: string; author?: string; parentId?: string },
+    input: { kind: 'issue' | 'note'; body: string; author?: string; parentId?: string },
     isOwner: boolean,
   ) {
-    const guide = JSON.parse(guideRow.data) as { steps: { id: string }[] }
-    if (!guide.steps.some((s) => s.id === input.stepId)) {
-      return reply.code(400).send({ errorAr: 'الخطوة غير موجودة في هذا الدليل — ربما حُذفت أو عُدّل الدليل' })
-    }
     if (input.parentId) {
       const parent = db
         .select()
         .from(stepComments)
         .where(and(eq(stepComments.id, input.parentId), eq(stepComments.guideId, guideRow.id)))
         .get()
-      // عمق واحد: الأب يجب أن يكون تعليقًا أصليًا على الخطوة نفسها
-      if (!parent || parent.parentId || parent.stepId !== input.stepId) {
+      // عمق واحد: الأب يجب أن يكون تعليقًا أصليًا في هذا الدليل
+      if (!parent || parent.parentId) {
         return reply.code(400).send({ errorAr: 'التعليق الأصلي غير موجود — رُبما حُذف، علّق كتعليق جديد' })
       }
     }
@@ -65,7 +62,8 @@ export function registerCommentRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       .values({
         id: nanoid(10),
         guideId: guideRow.id,
-        stepId: input.stepId,
+        stepId: '', // سنتينل «بلا خطوة» — التعليقات صارت على مستوى الدليل
+        kind: input.kind,
         parentId: input.parentId ?? null,
         author: isOwner ? '' : (input.author ?? ''),
         isOwner: isOwner ? 1 : 0,

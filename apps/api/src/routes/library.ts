@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import type { Auth } from '../auth/session'
-import { guides, workspaces } from '../db/schema'
+import { guides, users, workspaces } from '../db/schema'
 import { memberRole } from '../ws/roles'
 import type { Db } from '../db/client'
 
@@ -43,6 +43,12 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       workspaceName: wsRow?.name ?? '',
       myRole: role,
       myEmail: user.email,
+      // مزامنة الثيم (0014): القيمة المخزنة للمستخدم — قد تغيب في قواعد قديمة قبل الترحيل
+      myTheme:
+        (db.select({ theme: users.theme }).from(users).where(eq(users.id, user.id)).get()?.theme as
+          | 'brand'
+          | 'classic'
+          | undefined) ?? 'brand',
       counts: { all, mine, published, saved },
       sites: sites.map((s) => ({ site: s.site, count: Number(s.count) })),
     }

@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify'
 import { users } from '../db/schema'
 import { hashPassword, verifyPassword } from '../auth/password'
 import { SESSION_COOKIE, type Auth } from '../auth/session'
-import { zLogin, zRegister } from '@dalili/shared'
+import { zLogin, zRegister, zTheme } from '@dalili/shared'
 import { seedWelcomeGuide } from '../lib/welcome'
 import type { Db } from '../db/client'
 
@@ -62,5 +62,16 @@ export function registerAuthRoutes(app: FastifyInstance, db: Db, auth: Auth, sql
 
   app.get('/api/auth/me', { preHandler: auth.requireAuth }, async (req) => {
     return auth.readUser(req)
+  })
+
+  // مزامنة الثيم (2026-09-06): الاختيار لكل مستخدم — الموقع والامتداد يقرآنه من overview
+  app.put('/api/me/theme', { preHandler: auth.requireAuth }, async (req, reply) => {
+    const parsed = zTheme.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ errorAr: `بيانات غير صالحة: ${parsed.error.issues[0]?.message ?? ''}` })
+    }
+    const user = auth.readUser(req)!
+    db.update(users).set({ theme: parsed.data.theme }).where(eq(users.id, user.id)).run()
+    return { myTheme: parsed.data.theme }
   })
 }

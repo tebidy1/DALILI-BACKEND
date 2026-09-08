@@ -246,6 +246,71 @@ export function listMigrations(): Migration[] {
           .run()
       },
     },
+    {
+      // GM-05 تطوّر: نوع التعليق (مشكلة/تعليق) على مستوى الدليل — التعليقات القديمة
+      // تصير 'note' بالافتراض بلا حذف (قانون التوسيع الجمعي §5.5)
+      id: '0012',
+      name: 'comment-kind',
+      up: (sqlite) => {
+        addColumn(sqlite, 'step_comments', 'kind', "TEXT NOT NULL DEFAULT 'note'")
+      },
+    },
+    {
+      // SRCH-04 تطوّر: الفهرس صار يخزّن رموز الاستعلام والـhash (اكتشاف الشاشات الفرعية) —
+      // إعادة بناء الفهرس كي تحمل الأدلة القائمة رموز شاشاتها (نمط 0004)
+      id: '0013',
+      name: 'discover-screen-reindex',
+      up: (sqlite) => {
+        const guides = (sqlite.prepare('SELECT count(*) AS c FROM guides').get() as { c: number }).c
+        if (guides > 0) rebuildIndex(sqlite)
+      },
+    },
+    {
+      // مزامنة الثيم (2026-09-06): الخيار على الخادم لكل مستخدم — الموقع والامتداد يتبعانه
+      id: '0014',
+      name: 'user-theme',
+      up: (sqlite) => {
+        addColumn(sqlite, 'users', 'theme', "TEXT NOT NULL DEFAULT 'brand'")
+      },
+    },
+    {
+      // BKL-01: نوع المستند عمودًا مشتقًا (guide | booklet) — القوائم ترشّح وتميّز
+      // بلا فكّ JSON (قانون PERF-05). الأدلة القائمة تأخذ الافتراضي 'guide' بلا
+      // لمس محتواها (قانون التوسيع الجمعي §5.5).
+      id: '0015',
+      name: 'guide-kind',
+      up: (sqlite) => {
+        addColumn(sqlite, 'guides', 'kind', "TEXT NOT NULL DEFAULT 'guide'")
+      },
+    },
+    {
+      // VER-01: سجل إصدارات الدليل — لقطة JSON كاملة عند «تم» بإسقاط تكرار
+      // متجاور. cascade على حذف الدليل النهائي (يبقى مع السلة الناعمة).
+      // الفهرس المركّب (guide_id, created_at DESC) يخدم القائمة بلا فكّ JSON.
+      id: '0016',
+      name: 'guide-versions',
+      up: (sqlite) => {
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS guide_versions (
+               id           TEXT PRIMARY KEY,
+               guide_id     TEXT NOT NULL REFERENCES guides(id) ON DELETE CASCADE,
+               author_id    TEXT NOT NULL,
+               title        TEXT NOT NULL,
+               data         TEXT NOT NULL,
+               step_count   INTEGER NOT NULL DEFAULT 0,
+               created_at   TEXT NOT NULL
+             )`,
+          )
+          .run()
+        sqlite
+          .prepare(
+            `CREATE INDEX IF NOT EXISTS idx_guide_versions_guide_created
+               ON guide_versions (guide_id, created_at DESC)`,
+          )
+          .run()
+      },
+    },
   ]
 }
 

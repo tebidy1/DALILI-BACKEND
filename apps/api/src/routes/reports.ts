@@ -25,6 +25,9 @@ export function registerReportsRoutes(app: FastifyInstance, db: Db, auth: Auth) 
         openComments: sql<number>`coalesce((SELECT count(*) FROM step_comments sc JOIN guides g ON g.id = sc.guide_id
                               WHERE g.user_id = ${user.id} AND g.deleted_at IS NULL
                                 AND sc.parent_id IS NULL AND sc.resolved = 0), 0)`,
+        openIssues: sql<number>`coalesce((SELECT count(*) FROM step_comments sc JOIN guides g ON g.id = sc.guide_id
+                              WHERE g.user_id = ${user.id} AND g.deleted_at IS NULL
+                                AND sc.parent_id IS NULL AND sc.resolved = 0 AND sc.kind = 'issue'), 0)`,
       })
       .from(guides)
       .where(aliveMine)
@@ -35,6 +38,7 @@ export function registerReportsRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       published: Number(row?.published ?? 0),
       views: Number(row?.views ?? 0),
       openComments: Number(row?.openComments ?? 0),
+      openIssues: Number(row?.openIssues ?? 0),
     }
   })
 }

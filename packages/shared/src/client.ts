@@ -27,6 +27,10 @@ import type {
   InviteDto,
   InviteInfoDto,
   AcceptInviteReq,
+  ThemeChoiceDto,
+  VersionSummaryDto,
+  ListVersionsDto,
+  GuideVersionDetailsDto,
 } from './contract'
 
 export class DaliliApiError extends Error {
@@ -120,6 +124,11 @@ export class DaliliClient {
     return this.req<LibraryOverviewDto>('/api/library/overview', { signal })
   }
 
+  /** مزامنة الثيم: كتابة الاختيار على الخادم — الامتداد يقرؤه عند إقلاعه التالي */
+  async setMyTheme(theme: ThemeChoiceDto) {
+    return this.req<{ myTheme: ThemeChoiceDto }>('/api/me/theme', { method: 'PUT', json: { theme } })
+  }
+
   /** المرحلة ج (أنشئ بواسطي + التقارير): التقرير المجمّع لأدلتي — شريط أعلى الشاشة */
   myReport(signal?: AbortSignal) {
     return this.req<MineReportDto>('/api/reports/mine', { signal })
@@ -173,6 +182,23 @@ export class DaliliClient {
     await this.req<void>(`/api/guides/${id}${suffix}`, { method: 'DELETE' })
   }
 
+  /** VER-01: التقاط لقطة عند «تم» — الخادم يُسقط التكرار المتجاور فيرد 204 فنعيد null.
+   *  الفشل غير الصامت (شبكة/خطأ صادق) يُلقى كـDaliliApiError برسالة عربية. */
+  async createVersion(guideId: string): Promise<VersionSummaryDto | null> {
+    const r = await this.req<VersionSummaryDto | undefined>(`/api/guides/${guideId}/versions`, { method: 'POST' })
+    return r ?? null
+  }
+
+  /** VER-01: قائمة السجل — من الأحدث للأقدم، بلا حقل data (JSON قد يكون كبيرًا) */
+  listVersions(guideId: string, signal?: AbortSignal) {
+    return this.req<ListVersionsDto>(`/api/guides/${guideId}/versions`, { signal })
+  }
+
+  /** VER-01: تفاصيل نسخة كاملة — الشكل يمرّ عبر عارض القراءة القائم بلا فرع خاص */
+  getVersion(guideId: string, versionId: string, signal?: AbortSignal) {
+    return this.req<GuideVersionDetailsDto>(`/api/guides/${guideId}/versions/${versionId}`, { signal })
+  }
+
   createShare(id: string) {
     return this.req<ShareInfoDto>(`/api/guides/${id}/share`, { method: 'POST' })
   }
@@ -224,9 +250,10 @@ export class DaliliClient {
     return this.req<SearchResponseDto>(`/api/search/suggest?q=${encodeURIComponent(q)}`, { signal })
   }
 
-  /** SRCH-04: شارة الاكتشاف — أدلة المالك على نطاق التبويب النشط */
-  discover(site: string, signal?: AbortSignal) {
-    return this.req<DiscoverResponseDto>(`/api/discover?site=${encodeURIComponent(site)}`, { signal })
+  /** SRCH-04: شارة الاكتشاف — أدلة المالك على نطاق التبويب النشط، مرتّبة بالشاشة ثم الموقع */
+  discover(site: string, screen?: string, signal?: AbortSignal) {
+    const q = screen ? `&screen=${encodeURIComponent(screen)}` : ''
+    return this.req<DiscoverResponseDto>(`/api/discover?site=${encodeURIComponent(site)}${q}`, { signal })
   }
 
   // ——— GM-05: تعليقات الخطوات ——

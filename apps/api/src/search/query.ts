@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { normalizeForIndex, highlightSnippet } from '@dalili/core'
+import { normalizeForIndex, highlightSnippet, rankDiscover, type DiscoverCandidate } from '@dalili/core'
 import type { DiscoverResponseDto, SearchHitDto, SearchResponseDto } from '@dalili/shared'
 import { FIELD_WEIGHTS, type IndexedField } from './index'
 
@@ -159,7 +159,13 @@ export function runSearch(
  * SRCH-04: اكتشاف حسب الصفحة — أدلة النطاق المسموح بها لصاحب الطلب (مَلكه + منشور مساحته بـWS-02)،
  * بلا استعلام نصي. شرط النطاق نفسه الذي يستخدمه مرشّح البحث (إبرة النقاط المفككة).
  */
-export function runDiscover(sqlite: Database.Database, userId: string, site: string, workspaceId?: string): DiscoverResponseDto {
+export function runDiscover(
+  sqlite: Database.Database,
+  userId: string,
+  site: string,
+  screen: string,
+  workspaceId?: string,
+): DiscoverResponseDto {
   const needle = siteNeedle(site)
   const siteExists =
     "EXISTS(SELECT 1 FROM guide_index u WHERE u.guide_id = g.id AND u.field = 'url' AND u.raw_text LIKE '%' || ? || '%' ESCAPE '\\')"
@@ -167,18 +173,35 @@ export function runDiscover(sqlite: Database.Database, userId: string, site: str
     ? "(g.user_id = ? OR (g.workspace_id = ? AND g.visibility = 'workspace'))"
     : 'g.user_id = ?'
   const scopeParams: unknown[] = workspaceId ? [userId, workspaceId] : [userId]
-  const count = (
-    sqlite
-      .prepare(`SELECT COUNT(DISTINCT g.id) AS c FROM guides g WHERE ${scope} AND ${siteExists}`)
-      .get(...(scopeParams as never[]), needle) as { c: number }
-  ).c
-  const guides = (
-    sqlite
-      .prepare(
-        `SELECT g.id, g.title, g.updated_at FROM guides g WHERE ${scope} AND ${siteExists}
-         ORDER BY g.updated_at DESC LIMIT 5`,
-      )
-      .all(...(scopeParams as never[]), needle) as Array<{ id: string; title: string; updated_at: string }>
-  ).map((r) => ({ id: r.id, title: r.title, updatedAt: r.updated_at }))
-  return { count, guides }
+
+  // مرشّحو المضيف مع مشاهداتهم المجمّعة (مشاركات حية) ونص فهرس روابطهم المجمّع
+  const rows = sqlite
+    .prepare(
+      `SELECT g.id, g.title, g.updated_at,
+              COALESCE((SELECT sum(s.views) FROM shares s WHERE s.guide_id = g.id AND s.revoked_at IS NULL), 0) AS views,
+              COALESCE((SELECT group_concat(u.raw_text, ' ') FROM guide_index u WHERE u.guide_id = g.id AND u.field = 'url'), '') AS url_text
+       FROM guides g
+       WHERE ${scope} AND ${siteExists}`,
+    )
+    .all(...(scopeParams as never[]), needle) as Array<{
+    id: string
+    title: string
+    updated_at: string
+    views: number
+    url_text: string
+  }>
+
+  const cands: DiscoverCandidate[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    updatedAt: r.updated_at,
+    views: Number(r.views ?? 0),
+    urlText: r.url_text,
+  }))
+
+  // رموز الشاشة الحالية من الامتداد، ورموز المضيف لطرحها من مطابقة الشاشة
+  const screenTokens = screen.split(/\s+/).filter(Boolean)
+  const hostTokens = site.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  const { onScreen, onSite } = rankDiscover(cands, screenTokens, hostTokens, 5)
+  return { count: cands.length, onScreen, onSite }
 }

@@ -98,13 +98,16 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
     deletedAt: string | null
     shareToken: string | null
     shareRevoked: string | null
-    /** GM-05: استعلامان فرعيان مجمّعان — لا تفكيك JSON ولا استعلام لكل صف */
+    /** GM-05: استعلامات فرعية مجمّعة — لا تفكيك JSON ولا استعلام لكل صف */
     commentCount: number | string | null
     openCommentCount: number | string | null
+    openIssueCount: number | string | null
     /** WS-02: الرؤية */
     visibility: string
     /** WS-05: الموقع المشتق */
     site: string
+    /** BKL-01: نوع المستند من العمود المشتق — لا فكّ JSON (قانون PERF-05) */
+    kind: string
     /** WS-04: بوكمارك المشاهد الحالي */
     bookmarked: number | string | null
     /** المرحلة ب: ملكية العضو الحالي */
@@ -120,6 +123,7 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
       stepCount: r.stepCount,
+      kind: r.kind === 'booklet' ? 'booklet' : 'guide',
       thumbFileId: r.thumbFileId ?? undefined,
       starred: !!r.starred,
       folderId: r.folderId,
@@ -129,6 +133,7 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
       shareUrl: shared && r.shareToken ? `${publicBase}/s/${r.shareToken}` : undefined,
       commentCount: Number(r.commentCount ?? 0),
       openCommentCount: Number(r.openCommentCount ?? 0),
+      openIssueCount: Number(r.openIssueCount ?? 0),
       visibility: r.visibility === 'workspace' ? 'workspace' : 'private',
       site: r.site,
       bookmarked: Number(r.bookmarked ?? 0) > 0,
@@ -152,12 +157,14 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
     deletedAt: guides.deletedAt,
     shareToken: shares.token,
     shareRevoked: shares.revokedAt,
-    // GM-05: عدّا التعليقات لشارة المكتبة — الكلي، والخيوط الأصلية غير المحلولة
+    // GM-05: عدّادات التعليقات لشارة المكتبة — الكلي، والأصلية المفتوحة، والمشكلات المفتوحة وحدها
     commentCount: sql<number>`(SELECT count(*) FROM step_comments sc WHERE sc.guide_id = ${guides.id})`,
     openCommentCount: sql<number>`(SELECT count(*) FROM step_comments sc WHERE sc.guide_id = ${guides.id} AND sc.parent_id IS NULL AND sc.resolved = 0)`,
+    openIssueCount: sql<number>`(SELECT count(*) FROM step_comments sc WHERE sc.guide_id = ${guides.id} AND sc.parent_id IS NULL AND sc.resolved = 0 AND sc.kind = 'issue')`,
     // WS-02/04/05
     visibility: guides.visibility,
     site: guides.site,
+    kind: guides.kind,
     bookmarked: sql<number>`(SELECT count(*) FROM bookmarks b WHERE b.guide_id = ${guides.id} AND b.user_id = ${viewerId})`,
     // المرحلة ب: هل الدليل من إنشاء هذا العضو — تقيد الواجهة بصدق
     mine: sql<number>`(CASE WHEN ${guides.userId} = ${viewerId} THEN 1 ELSE 0 END)`,

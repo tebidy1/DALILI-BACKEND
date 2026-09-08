@@ -29,14 +29,28 @@ function guideWithUrl(title: string, url: string) {
   }
 }
 
-async function create(app: import('fastify').FastifyInstance, cookie: string, guide: unknown) {
+async function create(app: import('fastify').FastifyInstance, cookie: string, guide: { id: string }) {
   const res = await app.inject({ method: 'POST', url: '/api/guides', headers: { cookie }, payload: { guide } })
   expect(res.statusCode, `create failed: ${res.body}`).toBe(200)
+  return res.json().id as string // المعرّف الذي يولّده الخادم لا معرّف العميل
 }
 
-/** SRCH-04: الاكتشاف حسب الصفحة — شارة الامتداد بعدد أدلة المالك على نطاق التبويب النشط */
-describe('GET /api/discover?site=', () => {
-  it('يعُدّ أدلة المالك التي روابط خطواتها من النطاق ويعيد أحدثها أولًا', async () => {
+/** يمنح دليلًا مشاهدات عبر مشاركة حية — لاختبار الترتيب بالأكثر مشاهدة */
+async function addViews(app: import('fastify').FastifyInstance, cookie: string, gid: string, n: number) {
+  const share = await app.inject({ method: 'POST', url: `/api/guides/${gid}/share`, headers: { cookie } })
+  const token = share.json().token as string
+  for (let i = 0; i < n; i++) await app.inject({ method: 'POST', url: `/api/share/${token}/view` })
+}
+
+interface DiscBody {
+  count: number
+  onScreen: Array<{ id: string; title: string; updatedAt: string; views: number }>
+  onSite: Array<{ id: string; title: string; updatedAt: string; views: number }>
+}
+
+/** SRCH-04 تطوّر: اكتشاف الشاشات الفرعية — مجموعتان (الشاشة/الموقع) والأكثر مشاهدة أولًا */
+describe('GET /api/discover?site=&screen=', () => {
+  it('بلا رموز شاشة: كل أدلة الموقع في onSite، والأحدث أولًا', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, `disc1-${Date.now()}@a.co`)
     await create(app, cookie, guideWithUrl('دليل الفواتير القديم', 'https://erp.example.com/invoices'))
@@ -46,11 +60,60 @@ describe('GET /api/discover?site=', () => {
 
     const res = await app.inject({ method: 'GET', url: '/api/discover?site=erp.example.com', headers: { cookie } })
     expect(res.statusCode).toBe(200)
-    const body = res.json() as { count: number; guides: Array<{ id: string; title: string; updatedAt: string }> }
+    const body = res.json() as DiscBody
     expect(body.count).toBe(2)
-    expect(body.guides).toHaveLength(2)
-    expect(body.guides[0]!.title).toBe('دليل الاعتماد الأحدث')
-    expect(body.guides[1]!.title).toBe('دليل الفواتير القديم')
+    expect(body.onScreen).toHaveLength(0)
+    expect(body.onSite.map((g) => g.title)).toEqual(['دليل الاعتماد الأحدث', 'دليل الفواتير القديم'])
+  })
+
+  it('رموز الشاشة تفصل «هذه الشاشة» عن بقية الموقع', async () => {
+    const { app } = await buildTestApp()
+    const { cookie } = await registerUser(app, `disc-sep-${Date.now()}@a.co`)
+    await create(app, cookie, guideWithUrl('دليل المبيعات', 'https://erp.example.com/sales'))
+    await create(app, cookie, guideWithUrl('دليل المخزون', 'https://erp.example.com/inventory'))
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/discover?site=erp.example.com&screen=' + encodeURIComponent('sales'),
+      headers: { cookie },
+    })
+    const body = res.json() as DiscBody
+    expect(body.onScreen.map((g) => g.title)).toEqual(['دليل المبيعات'])
+    expect(body.onSite.map((g) => g.title)).toEqual(['دليل المخزون'])
+  })
+
+  it('هوية شاشة أودو في الـhash تُفهرس وتُطابَق (المقتل المصلَح)', async () => {
+    const { app } = await buildTestApp()
+    const { cookie } = await registerUser(app, `disc-odoo-${Date.now()}@a.co`)
+    await create(app, cookie, guideWithUrl('دليل أمر البيع', 'https://odoo.corp.sa/web#action=311&model=sale.order&id=42'))
+    await create(app, cookie, guideWithUrl('لوحة القيادة', 'https://odoo.corp.sa/dashboard'))
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/discover?site=odoo.corp.sa&screen=' + encodeURIComponent('web model sale order'),
+      headers: { cookie },
+    })
+    const body = res.json() as DiscBody
+    expect(body.onScreen.map((g) => g.title)).toEqual(['دليل أمر البيع'])
+    expect(body.onSite.map((g) => g.title)).toEqual(['لوحة القيادة'])
+  })
+
+  it('داخل مجموعة الشاشة: الأكثر مشاهدة أولًا', async () => {
+    const { app } = await buildTestApp()
+    const { cookie } = await registerUser(app, `disc-views-${Date.now()}@a.co`)
+    const low = await create(app, cookie, guideWithUrl('تقرير قليل المشاهدة', 'https://erp.example.com/reports'))
+    const high = await create(app, cookie, guideWithUrl('تقرير كثير المشاهدة', 'https://erp.example.com/reports'))
+    await addViews(app, cookie, high, 5)
+    await addViews(app, cookie, low, 1)
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/discover?site=erp.example.com&screen=' + encodeURIComponent('reports'),
+      headers: { cookie },
+    })
+    const body = res.json() as DiscBody
+    expect(body.onScreen.map((g) => g.id)).toEqual([high, low])
+    expect(body.onScreen[0]!.views).toBe(5)
   })
 
   it('أدلة مستخدم آخر لا تُحتسب — العزل بين الحسابات', async () => {
@@ -59,17 +122,10 @@ describe('GET /api/discover?site=', () => {
     const { cookie: other } = await registerUser(app, `disc2b-${Date.now()}@a.co`)
     await create(app, other, guideWithUrl('دليل الجار', 'https://erp.example.com/x'))
     const res = await app.inject({ method: 'GET', url: '/api/discover?site=erp.example.com', headers: { cookie: mine } })
-    expect(res.statusCode).toBe(200)
-    expect(res.json().count).toBe(0)
-    expect(res.json().guides).toHaveLength(0)
-  })
-
-  it('لا أدلة على النطاق → صفر وقائمة فارغة (شارة تختفي عند العميل)', async () => {
-    const { app } = await buildTestApp()
-    const { cookie } = await registerUser(app, `disc3-${Date.now()}@a.co`)
-    const res = await app.inject({ method: 'GET', url: '/api/discover?site=unknown.example.org', headers: { cookie } })
-    expect(res.statusCode).toBe(200)
-    expect(res.json().count).toBe(0)
+    const body = res.json() as DiscBody
+    expect(body.count).toBe(0)
+    expect(body.onScreen).toHaveLength(0)
+    expect(body.onSite).toHaveLength(0)
   })
 
   it('نطاق ناقص → 400 برسالة عربية', async () => {
@@ -86,16 +142,20 @@ describe('GET /api/discover?site=', () => {
     expect(res.statusCode).toBe(401)
   })
 
-  it('سقف خمسة أدلة في القائمة مهما كبر العدد الكلي', async () => {
+  it('سقف خمسة لكل مجموعة مهما كبر العدد الكلي', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, `disc5-${Date.now()}@a.co`)
     for (let i = 0; i < 7; i++) {
       await create(app, cookie, guideWithUrl(`دليل رقم ${i}`, 'https://erp.example.com/p'))
       await new Promise((r) => setTimeout(r, 10))
     }
-    const res = await app.inject({ method: 'GET', url: '/api/discover?site=erp.example.com', headers: { cookie } })
-    const body = res.json() as { count: number; guides: unknown[] }
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/discover?site=erp.example.com&screen=' + encodeURIComponent('p'),
+      headers: { cookie },
+    })
+    const body = res.json() as DiscBody
     expect(body.count).toBe(7)
-    expect(body.guides.length).toBeLessThanOrEqual(5)
+    expect(body.onScreen.length).toBeLessThanOrEqual(5)
   })
 })

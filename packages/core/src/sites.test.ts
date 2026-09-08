@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { extractCapturedSites, primarySiteOf } from './sites'
 
+describe('primarySiteOf — الكرّاسة بلا موقع', () => {
+  // BKL-01: كتل الكرّاسة بروابط فارغة ⇒ موقع فارغ صادق بلا تخمين.
+  // هذا يجعل استبعاد الكرّاسة من اكتشاف الشاشة سلوكًا طبيعيًا لا استثناءً.
+  it('كتل بروابط فارغة تعطي موقعًا فارغًا', () => {
+    expect(primarySiteOf([{ url: '' }, { url: '' }])).toBe('')
+  })
+})
+
 describe('extractCapturedSites — استخراج شارات المواقع والتطبيقات', () => {
   it('يستخرج المواقع الفريدة من خطوات الدليل مع أسماء منسقة وحروف بادئة وألوان متناسقة', () => {
     const steps = [

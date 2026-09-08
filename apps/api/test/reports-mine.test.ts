@@ -83,6 +83,7 @@ interface MineReport {
   published: number
   views: number
   openComments: number
+  openIssues: number
 }
 
 async function myReport(app: InjectLike, cookie: string): Promise<MineReport> {
@@ -95,7 +96,7 @@ describe('تقرير «أدلتي» المجمّع (المرحلة ج — WS-06)
   it('عضو بلا أدلة: أصفار صادقة — لا دليل ترحيبي للمدعوّ ولا أرقام ملفقة', async () => {
     const { app } = await buildTestApp()
     const { creator } = await inviteCreator(app, 'rep-empty@dalili.sa')
-    expect(await myReport(app, creator.cookie)).toEqual({ total: 0, published: 0, views: 0, openComments: 0 })
+    expect(await myReport(app, creator.cookie)).toEqual({ total: 0, published: 0, views: 0, openComments: 0, openIssues: 0 })
   })
 
   it('يجمع كل شيء: الأدلة والمنشور والمشاهدات (VIEW-06) وتنتظر ردًا (GM-05) — والسلة وأدلة غيري خارجها', async () => {
@@ -127,23 +128,23 @@ describe('تقرير «أدلتي» المجمّع (المرحلة ج — WS-06)
     await app.inject({ method: 'POST', url: `/api/guides/${adminPub}/comments`, headers: { cookie: admin.cookie }, payload: {} })
 
     // قبل التعليقات: أدلتي ٢ ومنشور ١ ومشاهدات ٢ وتنتظر ردًا ٠
-    expect(await myReport(app, creator.cookie)).toEqual({ total: 2, published: 1, views: 2, openComments: 0 })
+    expect(await myReport(app, creator.cookie)).toEqual({ total: 2, published: 1, views: 2, openComments: 0, openIssues: 0 })
 
     // تعليقات على دليل المنشئ عبر اتصال ثانٍ: أصلان مفتوحان + أصل محلول + رد غير محلول
     const raw = new Database(path.join(dir, 'dalili.db'))
     const now = new Date().toISOString()
     const ins = raw.prepare(
-      `INSERT INTO step_comments (id, guide_id, step_id, parent_id, author, is_owner, body, resolved, created_at, updated_at)
-       VALUES (?, ?, ?, ?, '', 0, '', ?, ?, ?)`,
+      `INSERT INTO step_comments (id, guide_id, step_id, kind, parent_id, author, is_owner, body, resolved, created_at, updated_at)
+       VALUES (?, ?, '', ?, ?, '', 0, '', ?, ?, ?)`,
     )
-    ins.run('c-open-1', pub, 'step-1', null, 0, now, now)
-    ins.run('c-open-2', pub, 'step-1', null, 0, now, now)
-    ins.run('c-done', pub, 'step-1', null, 1, now, now)
-    ins.run('c-reply', pub, 'step-1', 'c-open-1', 0, now, now)
+    ins.run('c-open-1', pub, 'issue', null, 0, now, now)
+    ins.run('c-open-2', pub, 'issue', null, 0, now, now)
+    ins.run('c-done', pub, 'issue', null, 1, now, now)
+    ins.run('c-reply', pub, 'issue', 'c-open-1', 0, now, now)
     raw.close()
 
-    // الأصول غير المحلولة وحدها تنتظر ردًا — الردود والمحلول ليسوا «انتظارًا»
-    expect(await myReport(app, creator.cookie)).toEqual({ total: 2, published: 1, views: 2, openComments: 2 })
+    // الأصول غير المحلولة وحدها تنتظر ردًا — الردود والمحلول ليسوا «انتظارًا»؛ وكلها مشكلات
+    expect(await myReport(app, creator.cookie)).toEqual({ total: 2, published: 1, views: 2, openComments: 2, openIssues: 2 })
   })
 
   it('سحب المشاركة يُسقط مشاهداتها من التقرير — لا أرقام من رابط ميت', async () => {

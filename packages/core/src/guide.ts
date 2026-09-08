@@ -2,6 +2,7 @@
 import type { AudioPause } from './audio'
 import type { AnchorChain } from './anchor'
 import type { TargetMark } from './target'
+import type { RichText } from './rich-text'
 
 export interface Rect {
   x: number
@@ -83,8 +84,21 @@ export interface MissingScreenshot {
   reason?: string
 }
 
-/** BLK-01: نوع الكتلة غير الملتقطة — غيابه في الخطوة = خطوة عادية (ملتقطة أو يدوية) */
-export type BlockKind = 'tip' | 'alert' | 'header'
+/**
+ * BLK-01 + BKL-01: نوع الكتلة غير الملتقطة — غيابه في الخطوة = خطوة عادية (ملتقطة أو يدوية).
+ * الثلاثة الأولى للأدلة والكرّاسات معًا، والخمسة بعدها كتل كرّاسة.
+ */
+export type BlockKind = 'tip' | 'alert' | 'header' | 'text' | 'embed' | 'divider' | 'link' | 'image' | 'video'
+
+/**
+ * BKL-01: مرجع حيّ لدليل مضمّن — نخزّن المعرّف فقط فيتبع التضمينُ تحديثاتِ الدليل
+ * (النسخة المجمّدة تتقادم صامتة وتخالف قانون الصدق §5.4).
+ * expanded=false بطاقة مطوية (الافتراضي عند الإدراج)، true يفرد خطواته داخل الكرّاسة.
+ */
+export interface GuideEmbed {
+  guideId: string
+  expanded: boolean
+}
 
 /** VOX-09 «ميك الخطوة»: تعليق صوتي مدموج مع الخطوة — سقف 60ث، وpending حتى يكتمل رفعه وتفريغه */
 export interface StepVoice {
@@ -110,6 +124,10 @@ export interface Step {
   screenshot?: ScreenshotMeta | MissingScreenshot
   /** BLK-01: نوع كتلة النداء/الهيدر — اختياري جمعيًا؛ غيابه خطوة عادية تُرقَّم */
   block?: BlockKind
+  /** BKL-01: محتوى كتلة النص المنسّق (block='text') — اختياري جمعيًا */
+  rich?: RichText
+  /** BKL-01: الدليل المضمّن (block='embed') — اختياري جمعيًا */
+  embed?: GuideEmbed
   /** VOX-09: تعليق صوتي للخطوة — اختياري جمعيًا (الأدلة القديمة بلا تعليق صالحة) */
   voice?: StepVoice
 }
@@ -129,6 +147,8 @@ export interface AudioMeta {
 export interface Guide {
   id: string
   schemaVersion: 1
+  /** BKL-01: نوع المستند — غيابه يعني دليلًا. الأدلة القائمة كلها تعبر بلا ترحيل محتوى. */
+  kind?: 'guide' | 'booklet'
   title: string
   description?: string
   locale: 'ar'

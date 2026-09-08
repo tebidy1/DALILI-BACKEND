@@ -30,6 +30,36 @@ export interface AnchorElInfo {
 /** أقصى طول لنص المرساة — أزرار بأوصاف أطول تُطابَق بقصّها بالطريقة نفسها وقت الحل */
 const TEXT_CAP = 80
 
+/**
+ * معرّفات يولّدها إطار العمل تلقائيًا وتتغيّر بين كل تحميلٍ وآخر — سمّها «متطايرة».
+ * علة حقيقية (بلاغ المالك): React `useId` (مثل `_r_6_`، `_r_u0_`) وBase UI
+ * (`base-ui-_r_pu_`) كانت تُلتقط كأقوى مرساة (id) وتُحقن في المسار، فعلى صفحة التدريب
+ * الطازجة إمّا لا تطابق شيئًا أو — الأسوأ — يُسنِد الإطار المعرّف نفسه لعنصرٍ **آخر**
+ * في الموضع نفسه من الشجرة فتطابق «فريدًا» خطأً → تُحاط دائرة الزر الخطأ. الحل:
+ * نعامل هذه المعرّفات كأن العنصر بلا id، فتسقط المرساة لإشارات مستقرّة (نص/aria/مسار بنيوي).
+ */
+const EPHEMERAL_ID_PATTERNS: RegExp[] = [
+  /_r_[a-z0-9]+_/i, // React useId مُعقَّم (يشمل المسبوق: base-ui-_r_pu_)
+  /:r[a-z0-9]+:/i, // React useId الخام «:r0:» (تضمّنه Radix/Headless أيضًا)
+  /^radix-/i, // Radix UI
+  /^headlessui-/i, // Headless UI
+  /^react-aria-?\d/i, // React Aria
+  /^mui-\d/i, // MUI
+  /^downshift-\d/i, // Downshift
+]
+
+/** هل المعرّف متولَّد متطايرًا (لا يُوثَّق به عبر الجلسات)؟ — نقي، يُستخدم التقاطًا وحلًّا */
+export function isEphemeralId(id: string | undefined | null): boolean {
+  const v = id?.trim() ?? ''
+  if (!v) return false
+  return EPHEMERAL_ID_PATTERNS.some((re) => re.test(v))
+}
+
+/** هل يحوي المسار مقطع معرّفٍ متطاير (`[id="_r_.._"]`)؟ — لا يُوثَّق به وقت الحل */
+function pathHasEphemeralId(path: string): boolean {
+  return EPHEMERAL_ID_PATTERNS.some((re) => re.test(path))
+}
+
 /** تطبيع النص المرساة — الدالة ذاتها وقت الالتقاط ووقت الحل فلا انزياح بينهما */
 export function anchorNormText(s: string): string {
   const clean = s.replace(/\s+/g, ' ').trim()
@@ -43,7 +73,8 @@ export function buildAnchorChain(info: AnchorElInfo): AnchorChain {
     const v = raw?.trim() ?? ''
     if (v.length >= minLen) chain.push({ k, v } as AnchorCandidate)
   }
-  push('id', info.id)
+  // المعرّف المتطاير يُسقَط كأن العنصر بلا id — فتبقى المرساة مستقرّة (testid/aria/نص/مسار)
+  push('id', isEphemeralId(info.id) ? undefined : info.id)
   push('testid', info.testid)
   push('aria', info.ariaLabel)
   push('name', info.name)
@@ -76,7 +107,13 @@ export function anchorToSelector(c: AnchorCandidate): string {
   }
 }
 
-/** عناصر تُطابَق بنصها — نص المرساة معنى للأزرار والروابط لا لأي فقرة في الصفحة */
+/**
+ * عناصر تُطابَق بنصها — نص المرساة معنى للأزرار والروابط لا لأي فقرة في الصفحة.
+ * علة «الخطوة الأخيرة لا تُظهر عنصرًا» (بلاغ المالك): القائمة كانت تُغفل أدوارًا
+ * تفاعلية شائعة في القوائم الحديثة — أبرزها `menuitemradio` (اختيار النموذج مثلًا) —
+ * فيسقط المرساة النصية الوحيدة المستقرّة لعنصرٍ معرّفه متطاير، فلا يُحل أبدًا. القائمة
+ * الآن موحّدة مع أدوار pick.ts التفاعلية التي يُعرّفها نصها المرئي.
+ */
 export const TEXT_ANCHOR_SEL = [
   'a',
   'button',
@@ -85,7 +122,13 @@ export const TEXT_ANCHOR_SEL = [
   '[role="link"]',
   '[role="tab"]',
   '[role="menuitem"]',
+  '[role="menuitemradio"]',
+  '[role="menuitemcheckbox"]',
   '[role="option"]',
+  '[role="switch"]',
+  '[role="checkbox"]',
+  '[role="radio"]',
+  '[role="treeitem"]',
   'input[type="submit"]',
   'input[type="button"]',
 ].join(',')
@@ -107,6 +150,9 @@ export function resolveAnchor<E>(chain: AnchorChain, dom: AnchorDom<E>): AnchorH
   for (let i = 0; i < chain.length; i++) {
     const c = chain[i]
     if (!c) continue
+    // حماية الأدلة القديمة: مرشّح مبنيّ على معرّفٍ متطاير قد يطابق عنصرًا خاطئًا «فريدًا» — نتجاوزه
+    if (c.k === 'id' && isEphemeralId(c.v)) continue
+    if (c.k === 'path' && pathHasEphemeralId(c.v)) continue
     if (c.k === 'text') {
       const matches = dom
         .queryAll(TEXT_ANCHOR_SEL)

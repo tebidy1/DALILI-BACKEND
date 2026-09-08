@@ -1,6 +1,6 @@
-/** إثبات حي لـGM-05 (تعليقات الخطوات) ضد الخادم الحي 8787:
- *  حساب مؤقت → دليل بخطوتين → مشاركة → ضيف يعلّق ويردّ → المالك يرى ويردّ ويسمّي
- *  محلولًا → عدّادات المكتبة تتبع → سلبيات صادقة. الدليل يبقى حيًّا للتحقق اليدوي.
+/** إثبات حي لـGM-05 تطوّر (تعليقات على مستوى الدليل + نوعان مشكلة/تعليق) ضد الخادم الحي 8787:
+ *  حساب مؤقت → دليل → مشاركة → ضيف يبلّغ «مشكلة» ويردّ → المالك يرى ويردّ ويحلّ →
+ *  عدّادات المكتبة والتقرير تفصل المشكلات عن التعليقات → سلبيات صادقة. الدليل يبقى حيًّا للتحقق اليدوي.
  *  عربية دائمًا عبر fetch (curl يشوّه العربية في Git Bash) — لا process.exit (فخ UV). */
 const API = 'http://127.0.0.1:8787'
 const STAMP = Date.now()
@@ -70,57 +70,76 @@ const share = await api(`/api/guides/${gid}/share`, { method: 'POST', headers: a
 const token = share.body?.token
 check('مشاركة الدليل', share.status === 200 && !!token)
 
+// GM-05 تطوّر: تعليقات على مستوى الدليل بنوعين — الضيف يبلّغ «مشكلة»
 const g1 = await api(`/api/share/${token}/comments`, {
   method: 'POST',
-  body: JSON.stringify({ stepId: 's1', body: 'الزر عندي رمادي لا برتقالي — هل تغيّرت الواجهة؟', author: 'سعد الزميل' }),
+  body: JSON.stringify({ kind: 'issue', body: 'الزر عندي رمادي لا برتقالي — هل تغيّرت الواجهة؟', author: 'سعد الزميل' }),
 })
-check('ضيف يعلّق على الخطوة الأولى', g1.status === 200 && g1.body.comment.isOwner === false, g1.body.comment?.author)
+check('ضيف يبلّغ مشكلة على مستوى الدليل', g1.status === 200 && g1.body.comment.isOwner === false && g1.body.comment.kind === 'issue', `kind=${g1.body.comment?.kind} stepId="${g1.body.comment?.stepId}"`)
+check('التبليغ على مستوى الدليل — stepId فارغ', g1.body.comment?.stepId === '')
 const rootId = g1.body.comment?.id
 
 const g2 = await api(`/api/share/${token}/comments`, {
   method: 'POST',
-  body: JSON.stringify({ stepId: 's1', body: 'نفس الشيء عندي بعد تحديث النظام', parentId: rootId }),
+  body: JSON.stringify({ kind: 'issue', body: 'نفس الشيء عندي بعد تحديث النظام', parentId: rootId }),
 })
 check('ضيف آخر يردّ على الخيط', g2.status === 200 && g2.body.comment.parentId === rootId)
 
 const nested = await api(`/api/share/${token}/comments`, {
   method: 'POST',
-  body: JSON.stringify({ stepId: 's1', body: 'رد على الرد', parentId: g2.body.comment?.id }),
+  body: JSON.stringify({ kind: 'issue', body: 'رد على الرد', parentId: g2.body.comment?.id }),
 })
 check('الرد على رد مرفوض — عمق واحد فقط', nested.status === 400)
 
-const badStep = await api(`/api/share/${token}/comments`, {
+const badKind = await api(`/api/share/${token}/comments`, {
   method: 'POST',
-  body: JSON.stringify({ stepId: 'ghost', body: 'خطوة غير موجودة' }),
+  body: JSON.stringify({ kind: 'bug', body: 'نوع مجهول' }),
 })
-check('خطوة غير موجودة مرفوضة برسالة عربية', badStep.status === 400 && /الخطوة/.test(badStep.body?.errorAr ?? ''), badStep.body?.errorAr)
+check('نوع مجهول مرفوض (400)', badKind.status === 400, `status=${badKind.status}`)
 
-// 4) المالك يرى سؤال الضيف ويردّ بعلامة صاحب الدليل
+// 4) المالك يرى تبليغ الضيف ويردّ بعلامة صاحب الدليل
 const ownerList = await api(`/api/guides/${gid}/comments`, { headers: authed })
-check('المالك يرى تعليقي الضيف', ownerList.status === 200 && ownerList.body.comments.length === 2)
+check('المالك يرى تبليغي الضيف', ownerList.status === 200 && ownerList.body.comments.length === 2)
 
 const ownerReply = await api(`/api/guides/${gid}/comments`, {
   method: 'POST',
   headers: authed,
-  body: JSON.stringify({ stepId: 's1', body: 'نعم غيّرت الواجهة — سأحدّث اللقطة اليوم', parentId: rootId }),
+  body: JSON.stringify({ kind: 'issue', body: 'نعم غيّرت الواجهة — سأحدّث اللقطة اليوم', parentId: rootId }),
 })
 check('المالك يردّ بعلامة صاحب الدليل', ownerReply.status === 200 && ownerReply.body.comment.isOwner === true)
 
-// 5) عدّادات المكتبة تتبع قبل/بعد الحل
+// تعليق عام (note) لإثبات فصله عن المشكلة في العدّادات
+const noteC = await api(`/api/share/${token}/comments`, {
+  method: 'POST',
+  body: JSON.stringify({ kind: 'note', body: 'شكرًا، الدليل واضح', author: 'منى' }),
+})
+check('ضيف يضيف تعليقًا عامًا (note)', noteC.status === 200 && noteC.body.comment.kind === 'note')
+
+// 5) عدّادات المكتبة تفصل المشكلات عن التعليقات — قبل الحل
 const listBefore = await api('/api/guides?limit=100', { headers: authed })
 const mineBefore = listBefore.body?.items?.find((g) => g.id === gid)
-check('شارة المكتبة: 3 تعليقات في خيط واحد مفتوح', mineBefore?.commentCount === 3 && mineBefore?.openCommentCount === 1, JSON.stringify({ c: mineBefore?.commentCount, o: mineBefore?.openCommentCount }))
+check('شارة المكتبة: 4 تعليقات · مفتوحان (مشكلة+تعليق) · مشكلة مفتوحة واحدة',
+  mineBefore?.commentCount === 4 && mineBefore?.openCommentCount === 2 && mineBefore?.openIssueCount === 1,
+  JSON.stringify({ c: mineBefore?.commentCount, o: mineBefore?.openCommentCount, i: mineBefore?.openIssueCount }))
+
+const repBefore = await api('/api/reports/mine', { headers: authed })
+check('تقرير المالك: مشكلة مفتوحة واحدة تنتظر معالجة', repBefore.body?.openIssues === 1, `openIssues=${repBefore.body?.openIssues} openComments=${repBefore.body?.openComments}`)
 
 const resolve = await api(`/api/guides/${gid}/comments/${rootId}`, {
   method: 'PATCH',
   headers: authed,
   body: JSON.stringify({ resolved: true }),
 })
-check('وسم الخيط محلولًا', resolve.status === 200 && resolve.body.comment.resolved === true)
+check('وسم المشكلة محلولة', resolve.status === 200 && resolve.body.comment.resolved === true)
 
 const listAfter = await api('/api/guides?limit=100', { headers: authed })
 const mineAfter = listAfter.body?.items?.find((g) => g.id === gid)
-check('بعد الحل: 3 تعليقات وصفر خيوط مفتوحة', mineAfter?.commentCount === 3 && mineAfter?.openCommentCount === 0)
+check('بعد الحل: صفر مشكلات مفتوحة، ويبقى التعليق العام مفتوحًا',
+  mineAfter?.openIssueCount === 0 && mineAfter?.openCommentCount === 1,
+  JSON.stringify({ o: mineAfter?.openCommentCount, i: mineAfter?.openIssueCount }))
+
+const repAfter = await api('/api/reports/mine', { headers: authed })
+check('تقرير المالك بعد الحل: صفر مشكلات مفتوحة', repAfter.body?.openIssues === 0, `openIssues=${repAfter.body?.openIssues}`)
 
 // 6) الضيف في العارض العام يرى ردّ المالك بعلامته
 const guestView = await api(`/api/share/${token}/comments`)

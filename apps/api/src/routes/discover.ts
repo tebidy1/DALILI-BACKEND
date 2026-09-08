@@ -17,7 +17,7 @@ export function registerDiscoverRoutes(app: FastifyInstance, sqlite: Database.Da
       const user = auth.readUser(req)!
       // WS-02: الاكتشاف يرى منشور المساحة أيضًا
       const wsId = auth.ensurePersonalWorkspace(user.id, user.email).id
-      return runDiscover(sqlite, user.id, parsed.data.site, wsId)
+      return runDiscover(sqlite, user.id, parsed.data.site, parsed.data.screen ?? '', wsId)
     },
   )
 }

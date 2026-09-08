@@ -7,6 +7,8 @@ export const users = sqliteTable('users', {
   email: text('email').notNull(),
   passwordHash: text('password_hash').notNull(),
   createdAt: text('created_at').notNull(),
+  /** مزامنة الثيم (0014): 'brand' | 'classic' — يقرؤه الموقع والامتداد عند الإقلاع */
+  theme: text('theme').notNull().default('brand'),
 })
 
 export const sessions = sqliteTable('sessions', {
@@ -67,6 +69,8 @@ export const guides = sqliteTable('guides', {
   visibility: text('visibility').notNull().default('private'),
   /** WS-05 (ترحيل 0008): موقع مشتق من أول خطوة — صغير بلا www؛ الترشيح بلا فكّ JSON */
   site: text('site').notNull().default(''),
+  /** BKL-01 (ترحيل 0015): نوع المستند عمودًا مشتقًا — القوائم ترشّح بلا فكّ JSON (قانون PERF-05) */
+  kind: text('kind').notNull().default('guide'),
 })
 
 /** WS-01 (ترحيل 0008): دعوات برابط يُرسل واتساب — بلا SMTP */
@@ -113,7 +117,10 @@ export const stepComments = sqliteTable('step_comments', {
   guideId: text('guide_id')
     .notNull()
     .references(() => guides.id, { onDelete: 'cascade' }),
+  /** '' = تعليق على مستوى الدليل (الجديد)؛ غيره تعليق قديم مرتبط بخطوة */
   stepId: text('step_id').notNull(),
+  /** GM-05 تطوّر: نوع التعليق — 'issue' مشكلة تحتاج إصلاحًا أو 'note' تعليق عام */
+  kind: text('kind').notNull().default('note'),
   /** null = تعليق أصلي؛ غيره رد على ذلك الأصل (عمق واحد) */
   parentId: text('parent_id'),
   author: text('author').notNull().default(''),
@@ -122,4 +129,19 @@ export const stepComments = sqliteTable('step_comments', {
   resolved: integer('resolved').notNull().default(0),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+})
+
+/** VER-01 (ترحيل 0016): سجل إصدارات الدليل — لقطة JSON كاملة عند «تم» بإسقاط
+ *  تكرار متجاور. cascade على حذف الدليل النهائي، وفهرس (guide_id, created_at DESC)
+ *  يخدم القائمة بلا فكّ JSON (قانون PERF-05). */
+export const guideVersions = sqliteTable('guide_versions', {
+  id: text('id').primaryKey(),
+  guideId: text('guide_id')
+    .notNull()
+    .references(() => guides.id, { onDelete: 'cascade' }),
+  authorId: text('author_id').notNull(),
+  title: text('title').notNull(),
+  data: text('data').notNull(),
+  stepCount: integer('step_count').notNull().default(0),
+  createdAt: text('created_at').notNull(),
 })

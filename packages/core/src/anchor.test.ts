@@ -3,6 +3,7 @@ import {
   anchorNormText,
   anchorToSelector,
   buildAnchorChain,
+  isEphemeralId,
   resolveAnchor,
   TEXT_ANCHOR_SEL,
   type AnchorChain,
@@ -52,6 +53,43 @@ describe('buildAnchorChain — بطاقة تعريف الزر (AUTO-01)', () => 
 
   it('بلا path ولا أي صفة = سلسلة فارغة (خطوات navigate مثلًا لا مرساة لها)', () => {
     expect(buildAnchorChain({ tag: 'html' })).toEqual([])
+  })
+})
+
+describe('isEphemeralId — معرّفات أطر العمل المتطايرة (علة الزر الخاطئ في التدريب)', () => {
+  it('يكشف معرّفات React useForId وBase UI المتولّدة (تتغيّر كل تحميل فتطابق عنصرًا آخر)', () => {
+    // من دليل حقيقي: React useId وBase UI — سبب «نُفّذت الخطوة على زر خاطئ»
+    expect(isEphemeralId('_r_6_')).toBe(true)
+    expect(isEphemeralId('_r_u0_')).toBe(true)
+    expect(isEphemeralId('_r_rr_')).toBe(true)
+    expect(isEphemeralId('base-ui-_r_pu_')).toBe(true)
+    expect(isEphemeralId('base-ui-_r_sr_')).toBe(true)
+    expect(isEphemeralId(':r0:')).toBe(true) // شكل React الخام
+    expect(isEphemeralId('radix-:r3:')).toBe(true)
+    expect(isEphemeralId('radix-42')).toBe(true)
+    expect(isEphemeralId('headlessui-menu-button-7')).toBe(true)
+    expect(isEphemeralId('mui-1423')).toBe(true)
+  })
+
+  it('يقبل المعرّفات الدلالية المستقرّة — لا يُسقط زرًا حقيقيًا', () => {
+    expect(isEphemeralId('save-btn')).toBe(false)
+    expect(isEphemeralId('frame-peek-portal')).toBe(false)
+    expect(isEphemeralId('user_profile_menu')).toBe(false)
+    expect(isEphemeralId('email')).toBe(false)
+    expect(isEphemeralId('')).toBe(false)
+  })
+})
+
+describe('buildAnchorChain — يُسقط المعرّف المتطاير فيسقط لبديلٍ مستقرّ', () => {
+  it('معرّف React المتطاير لا يُلتقط id — يبقى النص والمسار مرساةً صادقة', () => {
+    const chain = buildAnchorChain({
+      tag: 'button',
+      id: '_r_6_',
+      text: 'فعّل cowork',
+      path: 'body > div:nth-of-type(2) > button:nth-of-type(1)',
+    })
+    expect(chain.some((c) => c.k === 'id')).toBe(false) // لا معرّف متطاير
+    expect(chain.map((c) => c.k)).toEqual(['text', 'path'])
   })
 })
 
@@ -115,5 +153,38 @@ describe('resolveAnchor — أول مرشح فريد يفوز (GM-01 يقف عل
     const chain: AnchorChain = [{ k: 'id', v: 'gone' }, { k: 'path', v: 'body > x:nth-of-type(9)' }]
     const dom = fakeDom({})
     expect(resolveAnchor(chain, dom)).toBeNull()
+  })
+
+  it('يتجاوز مرشّح id المتطاير ولو طابق عنصرًا واحدًا — يحمي الأدلة القديمة من زرٍ خاطئ', () => {
+    // علة حقيقية: `_r_6_` قد يُسنَد لعنصرٍ مختلف على الصفحة الطازجة فيطابق «فريدًا» خطأً.
+    const chain: AnchorChain = [
+      { k: 'id', v: '_r_6_' },
+      { k: 'text', v: 'فعّل cowork' },
+    ]
+    const dom = fakeDom(
+      { '[id="_r_6_"]': ['wrong-el'], [TEXT_ANCHOR_SEL]: ['right-el'] },
+      { 'right-el': 'فعّل cowork' },
+    )
+    expect(resolveAnchor(chain, dom)).toEqual({ el: 'right-el', via: 1 }) // النص لا المعرّف المتطاير
+  })
+
+  it('نص عنصر menuitemradio يُحل (علة الخطوة الأخيرة: اختيار النموذج في قائمة حديثة)', () => {
+    // TEXT_ANCHOR_SEL يشمل menuitemradio الآن — «Opus 4.8» في قائمة النماذج يُطابَق بنصه
+    expect(TEXT_ANCHOR_SEL).toContain('[role="menuitemradio"]')
+    const chain: AnchorChain = [
+      { k: 'id', v: '_r_u0_' }, // معرّف متطاير يُتجاوز
+      { k: 'text', v: 'Opus 4.8' },
+    ]
+    const dom = fakeDom({ [TEXT_ANCHOR_SEL]: ['radio-a', 'radio-b'] }, { 'radio-a': 'Opus 4.7', 'radio-b': 'Opus 4.8' })
+    expect(resolveAnchor(chain, dom)).toEqual({ el: 'radio-b', via: 1 })
+  })
+
+  it('يتجاوز مرشّح مسار يحوي معرّفًا متطايرًا — سلف بمعرّف React لا يوثَّق به', () => {
+    const chain: AnchorChain = [
+      { k: 'path', v: '[id="_r_rr_"] > div:nth-of-type(2)' },
+      { k: 'aria', v: 'إلغاء' },
+    ]
+    const dom = fakeDom({ '[id="_r_rr_"] > div:nth-of-type(2)': ['wrong'], '[aria-label="إلغاء"]': ['right'] })
+    expect(resolveAnchor(chain, dom)).toEqual({ el: 'right', via: 1 })
   })
 })
