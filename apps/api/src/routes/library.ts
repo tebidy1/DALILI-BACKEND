@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import type { Auth } from '../auth/session'
-import { guides, users, workspaces } from '../db/schema'
+import { assignmentProgress, assignments, guides, users, workspaceMembers, workspaces } from '../db/schema'
 import { memberRole } from '../ws/roles'
 import type { Db } from '../db/client'
 
@@ -35,6 +35,37 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       .limit(8)
       .all()
 
+    // ASG: عدد الإسنادات التي تخصّني (أنا/فريقي/المساحة) على دليل حيّ ولم أفتحها بعد
+    const me = db
+      .select({ teamId: workspaceMembers.teamId })
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, ws.id), eq(workspaceMembers.userId, user.id)))
+      .get()
+    const myTeam = me?.teamId ?? '__none__'
+    const assignedNewCount = Number(
+      db
+        .select({ c: sql<number>`count(*)` })
+        .from(assignments)
+        .innerJoin(guides, eq(guides.id, assignments.guideId))
+        .leftJoin(
+          assignmentProgress,
+          and(eq(assignmentProgress.assignmentId, assignments.id), eq(assignmentProgress.userId, user.id)),
+        )
+        .where(
+          and(
+            eq(assignments.workspaceId, ws.id),
+            sql`${guides.deletedAt} IS NULL`,
+            sql`${assignmentProgress.openedAt} IS NULL`,
+            sql`(
+              (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${user.id})
+              OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
+              OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${ws.id})
+            )`,
+          ),
+        )
+        .get()?.c ?? 0,
+    )
+
     const wsRow = db.select({ name: workspaces.name }).from(workspaces).where(eq(workspaces.id, ws.id)).get()
     // بعد ensurePersonalWorkspace العضوية واجبة — والاحتياط «منشئ» لأنه أقل منحًا من مدير
     const role = memberRole(db, ws.id, user.id) ?? 'creator'
@@ -51,6 +82,7 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Db, auth: Auth) 
           | undefined) ?? 'brand',
       counts: { all, mine, published, saved },
       sites: sites.map((s) => ({ site: s.site, count: Number(s.count) })),
+      assignedNewCount,
     }
   })
 }

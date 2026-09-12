@@ -311,6 +311,43 @@ export function listMigrations(): Migration[] {
           .run()
       },
     },
+    {
+      // ASG-01 (ترحيل 0017): الإسناد — جدول الإسنادات وجدول تقدّم كل مُسنَد إليه.
+      // مستقلّان عن JSON الدليل؛ العضوية تُحلّ حيًّا فلا صف تقدّم مسبق (كسول).
+      id: '0017',
+      name: 'assignments',
+      up: (sqlite) => {
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS assignments (
+               id           TEXT PRIMARY KEY,
+               workspace_id TEXT NOT NULL,
+               guide_id     TEXT NOT NULL,
+               assigner_id  TEXT NOT NULL,
+               target_kind  TEXT NOT NULL,
+               target_id    TEXT NOT NULL,
+               note         TEXT NOT NULL DEFAULT '',
+               created_at   TEXT NOT NULL
+             )`,
+          )
+          .run()
+        sqlite
+          .prepare('CREATE INDEX IF NOT EXISTS idx_assignments_target ON assignments(workspace_id, target_kind, target_id)')
+          .run()
+        sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_assignments_guide ON assignments(guide_id)').run()
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS assignment_progress (
+               assignment_id TEXT NOT NULL,
+               user_id       TEXT NOT NULL,
+               opened_at     TEXT,
+               done_at       TEXT,
+               PRIMARY KEY (assignment_id, user_id)
+             )`,
+          )
+          .run()
+      },
+    },
   ]
 }
 

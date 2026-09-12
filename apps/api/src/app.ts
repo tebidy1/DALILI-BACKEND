@@ -18,6 +18,7 @@ import { registerTeamRoutes } from './routes/team'
 import { registerInviteRoutes } from './routes/invites'
 import { registerLibraryRoutes } from './routes/library'
 import { registerReportsRoutes } from './routes/reports'
+import { registerAssignmentRoutes } from './routes/assignments'
 import { createGroqSttProvider } from './stt/groq'
 import type { SttProvider } from './stt/provider'
 import type { EmbeddingProvider } from './embeddings/provider'
@@ -94,6 +95,7 @@ export async function createApp(opts: AppOptions) {
   registerInviteRoutes(app, db, auth, opts.publicBase)
   registerLibraryRoutes(app, db, auth)
   registerReportsRoutes(app, db, auth)
+  registerAssignmentRoutes(app, db, auth)
 
   app.setNotFoundHandler((_req, reply) => {
     return reply.code(404).send({ errorAr: 'المسار غير موجود' })

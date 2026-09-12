@@ -1,0 +1,36 @@
+# بوابة الدمج — الأحمر يمنع. تعمل على كل push إلى main وكل PR.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: تثبيت الاعتمادات
+        run: pnpm install --no-frozen-lockfile
+
+      - name: فحص الأنواع
+        run: pnpm -r --if-present typecheck
+
+      - name: تشغيل الاختبارات
+        run: pnpm -r --if-present test
+        env:
+          COOKIE_SECRET: ci-cookie-secret-32-chars-minimum-abc
+          DATA_DIR: data
+          PUBLIC_BASE: http://localhost:8787

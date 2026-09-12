@@ -238,6 +238,11 @@ export interface GuideDetailsDto {
   share: ShareInfoDto | null
   /** LIB-03: بيانات التنظيم للمحرر — الوسوم تُعرض وتُحرَّر من هناك */
   meta?: { starred: boolean; folderId: string | null; tags: string[] }
+  /**
+   * قرار المالك 2026-09-10: بوابة النشر قبل الرابط — حالة النشر تصير مع بيانات
+   * التنظيم ليحترم المحرر «لا رابط لدليل غير منشور». اختياري جمعيًا (خادم قديم = بلا بوابة).
+   */
+  visibility?: 'private' | 'workspace'
   /** LIB-06 + BKL-01: وقت دخول السلة — حضوره يميّز «في السلة» عن «غير موجود» (٤٠٤) */
   deletedAt?: string
 }
@@ -329,6 +334,53 @@ export interface LibraryOverviewDto {
     saved: number
   }
   sites: LibrarySiteCountDto[]
+  /** ASG: عدد الإسنادات التي تخصّني ولم أفتحها — شارة الشريط وإعلان الرئيسية.
+   *  اختياري تسامحًا مع مستهلكين أقدم؛ الخادم يرسله دائمًا (القارئ يفترض `?? 0`) */
+  assignedNewCount?: number
+}
+
+/** ——— الإسناد (ASG) — إسناد دليل/كرّاسة لشخص أو فريق أو المساحة، متابعة بالأسماء بلا توقيع رسمي ——— */
+export const zTargetKind = z.enum(['user', 'team', 'workspace'])
+export type TargetKind = z.infer<typeof zTargetKind>
+
+export const zAssignTarget = z.object({ kind: zTargetKind, id: z.string().min(1) })
+export type AssignTargetDto = z.infer<typeof zAssignTarget>
+
+export const zCreateAssignment = z.object({
+  targets: z.array(zAssignTarget).min(1, 'اختر شخصًا أو فريقًا أو الشركة كلها').max(50),
+  note: z.string().max(1000).optional(),
+})
+export type CreateAssignmentDto = z.infer<typeof zCreateAssignment>
+
+/** عنصر «أُسند إليّ» بمنظور المُسنَد إليه */
+export interface AssignedItemDto {
+  assignmentId: string
+  guideId: string
+  title: string
+  kind: 'guide' | 'booklet'
+  site: string
+  stepCount: number
+  assignerEmail: string
+  note: string
+  createdAt: string
+  openedAt: string | null
+  doneAt: string | null
+}
+
+/** صف في لوحة المُسنِد بمنظور المدير */
+export interface AssignmentRecipientDto {
+  userId: string
+  email: string
+  teamName: string | null
+  openedAt: string | null
+  doneAt: string | null
+}
+
+export interface AssignmentBoardDto {
+  recipients: AssignmentRecipientDto[]
+  recipientCount: number
+  openedCount: number
+  doneCount: number
 }
 
 /** المرحلة ج (أنشئ بواسطي + التقارير): التقرير المجمّع لأدلة العضو الحيّة — أصفار صادقة ولا شيء غيره */

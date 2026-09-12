@@ -110,6 +110,8 @@ export function registerGuideRoutes(
       deletedAt,
       // LIB-03: المحرر يعرض الوسوم ويحررها — بيانات تنظيم بجانب المحتوى
       meta: { starred: !!row.starred, folderId: row.folderId, tags: parseTags(row.tags) },
+      // قرار المالك 2026-09-10: بوابة النشر قبل رابط المشاركة
+      visibility: row.visibility === 'workspace' ? 'workspace' : 'private',
     }
   })
 

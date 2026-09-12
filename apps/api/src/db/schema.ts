@@ -145,3 +145,24 @@ export const guideVersions = sqliteTable('guide_versions', {
   stepCount: integer('step_count').notNull().default(0),
   createdAt: text('created_at').notNull(),
 })
+
+/** ASG-01 (ترحيل 0017): إسناد دليل/كرّاسة لشخص/فريق/مساحة — العضوية تُحلّ حيًّا */
+export const assignments = sqliteTable('assignments', {
+  id: text('id').primaryKey(),
+  workspaceId: text('workspace_id').notNull(),
+  guideId: text('guide_id').notNull(),
+  assignerId: text('assigner_id').notNull(),
+  /** 'user' | 'team' | 'workspace' */
+  targetKind: text('target_kind').notNull(),
+  targetId: text('target_id').notNull(),
+  note: text('note').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+})
+
+/** ASG-01: تقدّم كل مُسنَد إليه — صفّ كسول عند أول فتح أو «تمّ» */
+export const assignmentProgress = sqliteTable('assignment_progress', {
+  assignmentId: text('assignment_id').notNull(),
+  userId: text('user_id').notNull(),
+  openedAt: text('opened_at'),
+  doneAt: text('done_at'),
+})

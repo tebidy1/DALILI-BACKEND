@@ -31,6 +31,9 @@ import type {
   VersionSummaryDto,
   ListVersionsDto,
   GuideVersionDetailsDto,
+  AssignedItemDto,
+  AssignmentBoardDto,
+  AssignTargetDto,
 } from './contract'
 
 export class DaliliApiError extends Error {
@@ -132,6 +135,33 @@ export class DaliliClient {
   /** المرحلة ج (أنشئ بواسطي + التقارير): التقرير المجمّع لأدلتي — شريط أعلى الشاشة */
   myReport(signal?: AbortSignal) {
     return this.req<MineReportDto>('/api/reports/mine', { signal })
+  }
+
+  /** ASG: إسناد الدليل/الكرّاسة لأهداف متعددة بملاحظة اختيارية */
+  assignGuide(id: string, targets: AssignTargetDto[], note?: string) {
+    return this.req<{ created: number }>(`/api/guides/${id}/assign`, { json: { targets, note } })
+  }
+
+  async deleteAssignment(assignmentId: string) {
+    await this.req<void>(`/api/assignments/${assignmentId}`, { method: 'DELETE' })
+  }
+
+  /** ASG: «أُسند إليّ» — يحلّ (أنا/فريقي/المساحة) مع حالتي */
+  listAssigned(signal?: AbortSignal) {
+    return this.req<AssignedItemDto[]>('/api/assigned', { signal })
+  }
+
+  /** ASG: يضبط opened تلقائيًا؛ done=true/false يبدّل الإتمام */
+  setAssignmentProgress(assignmentId: string, done?: boolean) {
+    return this.req<{ openedAt: string; doneAt: string | null }>(`/api/assignments/${assignmentId}/progress`, {
+      method: 'POST',
+      json: done === undefined ? {} : { done },
+    })
+  }
+
+  /** ASG: لوحة المُسنِد بالأسماء لدليل بعينه */
+  guideAssignments(id: string, signal?: AbortSignal) {
+    return this.req<AssignmentBoardDto>(`/api/guides/${id}/assignments`, { signal })
   }
 
   async createFolder(name: string) {

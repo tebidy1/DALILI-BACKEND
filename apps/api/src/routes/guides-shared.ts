@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
 import type { GuideDto, GuideSummaryDto, ListGuidesDto, ListGuidesQuery } from '@dalili/shared'
 import type { Auth } from '../auth/session'
-import { guides, shares, users } from '../db/schema'
+import { assignments, guides, shares, users, workspaceMembers } from '../db/schema'
 import { memberRole } from '../ws/roles'
 import { normalizeFa } from '@dalili/core'
 import type { Db } from '../db/client'
@@ -65,11 +65,40 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
    * WS-02: ما يمكن للعضو رؤيته — ملكه ولو خاصًا، أو منشور مساحته صراحةً.
    * 404 للباقي بصدق (لا تسريب وجود أدلة مساحات أخرى).
    */
+  /** ASG: هل يملك هذا العضو إسنادًا حيًّا يمنحه قراءة هذا الدليل؟ (أنا/فريقي/مساحتي) */
+  function assignmentGrantsRead(userId: string, wsId: string, guideId: string): boolean {
+    const me = db
+      .select({ teamId: workspaceMembers.teamId })
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, userId)))
+      .get()
+    const myTeam = me?.teamId ?? '__none__'
+    const hit = db
+      .select({ id: assignments.id })
+      .from(assignments)
+      .where(
+        and(
+          eq(assignments.workspaceId, wsId),
+          eq(assignments.guideId, guideId),
+          sql`(
+            (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${userId})
+            OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
+            OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${wsId})
+          )`,
+        ),
+      )
+      .get()
+    return !!hit
+  }
+
   function visibleGuideOr404(userId: string, email: string, id: string) {
     const row = db.select().from(guides).where(eq(guides.id, id)).get() ?? null
     if (!row) return null
     if (row.userId === userId) return row
-    if (row.workspaceId === myWsId(userId, email) && row.visibility === 'workspace') return row
+    const wsId = myWsId(userId, email)
+    if (row.workspaceId === wsId && row.visibility === 'workspace') return row
+    // ASG: القراءة تتبع الإسناد الممنوح صراحةً — لا تصير الأدلة عامة ولا تدخل قائمة أو بحثًا
+    if (row.workspaceId === wsId && assignmentGrantsRead(userId, wsId, id)) return row
     return null
   }
 
@@ -241,7 +270,7 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
     return summaryOf(fresh!)
   }
 
-  return { ownedGuideOr404, myWsId, visibleGuideOr404, requireNotViewer, shareInfoFor, summaryOf, summaryById, listCols, runList }
+  return { ownedGuideOr404, myWsId, visibleGuideOr404, assignmentGrantsRead, requireNotViewer, shareInfoFor, summaryOf, summaryById, listCols, runList }
 }
 
 export type GuideHelpers = ReturnType<typeof makeGuideHelpers>

@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { zAppendSteps, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zUpdateComment, zVersionSummary } from './contract'
+import { zAppendSteps, zCreateAssignment, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zUpdateComment, zVersionSummary } from './contract'
+
+/** ASG: عقد إنشاء الإسناد — عدة أهداف بأنواع محصورة، وقائمة غير فارغة */
+describe('zCreateAssignment', () => {
+  it('يقبل عدة أهداف بأنواع صحيحة', () => {
+    const r = zCreateAssignment.safeParse({ targets: [{ kind: 'team', id: 't1' }, { kind: 'user', id: 'u2' }], note: 'اقرأه' })
+    expect(r.success).toBe(true)
+  })
+  it('يرفض قائمة أهداف فارغة', () => {
+    expect(zCreateAssignment.safeParse({ targets: [] }).success).toBe(false)
+  })
+  it('يرفض نوع هدف غير معروف', () => {
+    expect(zCreateAssignment.safeParse({ targets: [{ kind: 'role', id: 'x' }] }).success).toBe(false)
+  })
+})
 
 /** GM-05 (تطوّر): عقد تعليقات الدليل — نوعان (مشكلة/تعليق) بلا ربط خطوة، رد بعمق واحد */
 describe('zCreateComment', () => {
