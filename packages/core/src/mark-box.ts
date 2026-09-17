@@ -9,6 +9,8 @@
  * (بلا قصّ)، تصير الحاوية النسبية مطابقةً تمامًا لصندوق الصورة المعروض، فتُحوَّل
  * البكسلات إلى نِسَب تنطبق على العنصر بدقّة بلا قياس وقت التشغيل.
  */
+import type { MarkColor, TargetMark } from './target'
+
 export interface MarkRect {
   x: number
   y: number
@@ -35,4 +37,37 @@ export function markBoxRect(mark: MarkRect, naturalW: number, naturalH: number):
     width: pct(mark.w, naturalW),
     height: pct(mark.h, naturalH),
   }
+}
+
+/** حلقة نقطة الضغط الفارغة (قرار المالك ٣و — خيار أ): مركزُ العلامة نقطةُ
+ *  الضغط الحقيقيّة لا مستطيلُ العنصر الذي يخطئه UIA أحيانًا. مربّعٌ بضلع
+ *  ٢×نصف القطر و`shape:'ellipse'` — والعارض يرسم الإطار حدًّا لا ملءً
+ *  (drawMark: stroke فقط) فيصير حلقةً دائرية بلا تغيير مخطّطٍ ولا عارض.
+ *  الإحداثيّات بكسل الصورة الطبيعيّة (اطرح أصل الشاشة قبل النداء كما في
+ *  imageRectOf). المربّع جزئيُّ الخروج صالح (يُقصّ بصريًّا)؛ خارج الصورة
+ *  كليًّا أو مُدخَل منحلّ ⇐ بلا علامة بصدق. */
+export function pointMark(
+  cx: number,
+  cy: number,
+  radiusPx: number,
+  imgW: number,
+  imgH: number,
+  color: MarkColor,
+): TargetMark | undefined {
+  if (
+    !Number.isFinite(cx) ||
+    !Number.isFinite(cy) ||
+    !Number.isFinite(radiusPx) ||
+    radiusPx <= 0 ||
+    imgW <= 0 ||
+    imgH <= 0
+  ) {
+    return undefined
+  }
+  const rect = { x: cx - radiusPx, y: cy - radiusPx, w: radiusPx * 2, h: radiusPx * 2 }
+  if (rect.x >= imgW || rect.y >= imgH || rect.x + rect.w <= 0 || rect.y + rect.h <= 0) {
+    return undefined
+  }
+  if (markBoxRect(rect, imgW, imgH) === null) return undefined
+  return { rect, color, shape: 'ellipse' }
 }

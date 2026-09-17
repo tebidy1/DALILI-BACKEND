@@ -12,7 +12,8 @@ describe('stepTitle — مولّد العناوين العربي', () => {
     expect(stepTitle({ kind: 'click', target: { label: 'إرسال النموذج' }, sensitive: false })).toBe(
       'انقر على «إرسال النموذج»',
     )
-    expect(stepTitle({ kind: 'click', target: {}, sensitive: false })).toBe('انقر على العنصر')
+    // قرار المالك ٣و (خيار أ): نوع غائب + اسم فارغ ⇐ فعل عامّ «انقر هنا»
+    expect(stepTitle({ kind: 'click', target: {}, sensitive: false })).toBe('انقر هنا')
   })
 
   it('تنظيف الفراغات من نص الزر', () => {

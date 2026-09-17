@@ -23,14 +23,31 @@ export interface TitleInput {
   source?: StepSource
 }
 
+/** حاويات UIA العامّة — لا اسمَ معنويًّا غالبًا (قرار المالك ٣و خيار أ) */
+const GENERIC_CONTAINER_ROLES: ReadonlySet<string> = new Set(['Pane', 'Group', 'Window', 'Custom'])
+
+/** عنصر نوعُه حاوية عامّة (أو غائب) واسمُه فارغٌ أو يساوي نوعَه ⇐ لا اسم
+ *  حقيقيًّا يُعرَض — الذكاء UIA للاسم/المرساة يبقى كاملًا لغير ذلك */
+export function isUnnamedContainer(role: string | undefined, name: string | undefined): boolean {
+  const r = role?.trim()
+  if (r !== undefined && r !== '' && !GENERIC_CONTAINER_ROLES.has(r)) return false
+  const n = name?.trim()
+  return !n || n === r
+}
+
 /** مولّد العناوين العربي القاعدي — حتمي، بلا شبكة، قابل للاختبار */
 export function stepTitle(step: TitleInput): string {
-  const text = cleanText(step.target.text, 60)
-  const label = cleanText(step.target.label, 60)
+  const rawText = cleanText(step.target.text, 60)
+  const rawLabel = cleanText(step.target.label, 60)
+  // خيار أ (٣و): الحاوية العامّة بلا اسم حقيقيّ ⇐ نصّ عامّ لا اسم كاذب
+  const generic = isUnnamedContainer(step.target.role, rawText ?? rawLabel)
+  const text = generic ? undefined : rawText
+  const label = generic ? undefined : rawLabel
   switch (step.kind) {
     case 'click': {
       const t = text ?? label
-      return t ? `انقر على «${t}»` : 'انقر على العنصر'
+      if (t) return `انقر على «${t}»`
+      return generic ? 'انقر هنا' : 'انقر على العنصر'
     }
     case 'input': {
       if (step.sensitive) {
