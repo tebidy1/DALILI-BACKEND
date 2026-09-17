@@ -15,12 +15,14 @@ const { app, sqlite } = await createApp({
   cookieSecret: env.cookieSecret,
   publicBase: env.publicBase,
   groqApiKey: env.groqApiKey,
+  corsOrigins: env.corsOrigins,
   embeddings,
   // OPS-02: سجل منظّم (JSON بمعرّف طلب يلتقطه journalctl) مع إخفاء الكوكيز منه —
   // السجل أداة تشخيص لا صندوق أسرار
   logger: {
     redact: {
-      paths: ['req.headers.cookie', 'res.headers["set-cookie"]'],
+      // DTOP-03: رمز الجهاز سرّ كالكوكي — لا يدخل السجل
+      paths: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
       censor: '[مخفي]',
     },
   },

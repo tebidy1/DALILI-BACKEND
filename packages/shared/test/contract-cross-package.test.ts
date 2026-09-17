@@ -1,8 +1,24 @@
-import { describe, expect, it } from 'vitest'
-import { assembleGuide } from '@dalili/core'
-import { zAnnotation, zGuide, zRegister, zStep } from '../src/contract'
+import { describe, expect, expectTypeOf, it } from 'vitest'
+import type { z } from 'zod'
+import { assembleGuide, migrateGuide, type AnchorCandidate } from '@dalili/core'
+import { zAnchorCandidate, zAnnotation, zGuide, zRegister, zStep } from '../src/contract'
 
-/** اتساق عابر للحزم: ما يجمّعه core يجب أن يقبله عقد API */
+describe('اتساق المرساة: zod في shared ↔ النوع في core', () => {
+  it('المجموعة نفسها في الاتجاهين — انحراف أحدهما يُسقط typecheck', () => {
+    expectTypeOf<z.infer<typeof zAnchorCandidate>>().toEqualTypeOf<AnchorCandidate>()
+    const uia: AnchorCandidate[] = [
+      { k: 'automationId', v: 'btnSave' },
+      { k: 'controlType', v: 'Button' },
+    ]
+    for (const c of uia) expect(zAnchorCandidate.safeParse(c).success).toBe(true)
+  })
+})
+
+/**
+ * اتساق عابر للحزم: ما يجمّعه core يجب أن يقبله عقد API.
+ * منفصل عن src/contract.test.ts عمدًا — ذاك يختبر العقد وحده،
+ * وهذا يختبر التقاء core بالعقد (يستورد assembleGuide فعليًّا).
+ */
 describe('عقد zod يقبل ناتج assembleGuide', () => {
   it('دليل كامل بصور وفجوات يمر', () => {
     const guide = assembleGuide([
@@ -66,5 +82,32 @@ describe('VOX-09: حقل step.voice الاختياري (ميك الخطوة)', (
     expect(zStep.safeParse({ ...base, voice: { fileId: 'f1', durationMs: 0 } }).success).toBe(false)
     expect(zStep.safeParse({ ...base, voice: { fileId: 'f1', durationMs: -3 } }).success).toBe(false)
     expect(zStep.safeParse({ ...base, voice: { fileId: 'f1', durationMs: 60_001 } }).success).toBe(false)
+  })
+})
+
+/** DTOP-01: الترحيل الكسول ١→٢ يلتقي العقد — ناتج core يُقبل بشروط shared */
+describe('DTOP-01: migrateGuide يلتقي zGuide', () => {
+  const v1 = {
+    id: 'g1', schemaVersion: 1, title: 'دليل', locale: 'ar', dir: 'rtl',
+    createdAt: 'x', updatedAt: 'y',
+    steps: [
+      { id: 's1', kind: 'click', title: 'انقر', target: {}, sensitive: false, url: 'https://erp.example', pageTitle: 'النظام', ts: 1 },
+    ],
+  }
+  it('v1 كما هي مقبولة في العقد (إلزامي: إضافات في البريّة سترسل v1 أيامًا)', () => {
+    expect(zGuide.safeParse(v1).success).toBe(true)
+  })
+  it('v1 → migrateGuide → zGuide يقبله وschemaVersion صارت ٢', () => {
+    const migrated = migrateGuide(structuredClone(v1))!
+    const parsed = zGuide.safeParse(migrated)
+    expect(parsed.success).toBe(true)
+    expect(migrated.schemaVersion as number).toBe(2)
+  })
+  it('خطوة ديسكتوب v2 (بلا url/pageTitle) صالحة — العقد يتسع للديسكتوب', () => {
+    const desktop = {
+      id: 's2', kind: 'click', title: 'نقر إكسل', target: {}, sensitive: false, ts: 2,
+      source: { kind: 'desktop', processName: 'EXCEL.EXE', windowTitle: 'دفتر1', appId: 'app:EXCEL.EXE' },
+    }
+    expect(zStep.safeParse(desktop).success).toBe(true)
   })
 })

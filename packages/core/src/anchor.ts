@@ -1,6 +1,7 @@
 /** بطاقات تعريف الأزرار (AUTO-01) — سلسلة مرشّحين لكل عنصر تُلتقط وقت التسجيل،
  *  ويحلّها وضع التدريب «دربني» في الصفحة الهدف: أول مرشح فريد يفوز.
- *  نقي تمامًا: وصف العنصر DTO يبنيه سكربت المحتوى، والحل يجري فوق واجهة DOM محقونة. */
+ *  نقي تمامًا: وصف العنصر DTO يبنيه سكربت المحتوى، والحل يجري فوق منفذ محقون
+ *  يطابق **مرشّحًا** لا محدِّد CSS — فمحوّل UIA في تطبيق الديسكتوب لا يحلّل CSS أبدًا. */
 
 export type AnchorCandidate =
   | { k: 'id'; v: string }
@@ -9,6 +10,10 @@ export type AnchorCandidate =
   | { k: 'name'; v: string }
   | { k: 'text'; v: string }
   | { k: 'path'; v: string }
+  /** UIA AutomationId — أقوى مرساة على الديسكتوب (نظير id في الويب) */
+  | { k: 'automationId'; v: string }
+  /** UIA ControlType (Button، Edit…) — مُضيِّق ضعيف وحده، يأتي قبل المسار */
+  | { k: 'controlType'; v: string }
 
 export type AnchorChain = AnchorCandidate[]
 
@@ -25,6 +30,10 @@ export interface AnchorElInfo {
   text?: string
   /** مسار nth-of-type كامل من أقرب سلف — يبنيه سكربت المحتوى (الملاذ الأخير) */
   path?: string
+  /** UIA AutomationId — يملؤه قارئ الديسكتوب وحده؛ الويب لا يمرّره */
+  automationId?: string
+  /** UIA ControlType — يملؤه قارئ الديسكتوب وحده */
+  controlType?: string
 }
 
 /** أقصى طول لنص المرساة — أزرار بأوصاف أطول تُطابَق بقصّها بالطريقة نفسها وقت الحل */
@@ -66,7 +75,8 @@ export function anchorNormText(s: string): string {
   return clean.length > TEXT_CAP ? clean.slice(0, TEXT_CAP - 1) + '…' : clean
 }
 
-/** بناء سلسلة المرشحين بترتيب الأولوية الملزم: id → testid → aria → name → نص → مسار */
+/** بناء سلسلة المرشحين بترتيب الأولوية الملزم:
+ *  id → automationId → testid → aria → name → نص → controlType → مسار */
 export function buildAnchorChain(info: AnchorElInfo): AnchorChain {
   const chain: AnchorChain = []
   const push = (k: AnchorCandidate['k'], raw: string | undefined, minLen = 1) => {
@@ -75,11 +85,13 @@ export function buildAnchorChain(info: AnchorElInfo): AnchorChain {
   }
   // المعرّف المتطاير يُسقَط كأن العنصر بلا id — فتبقى المرساة مستقرّة (testid/aria/نص/مسار)
   push('id', isEphemeralId(info.id) ? undefined : info.id)
+  push('automationId', info.automationId)
   push('testid', info.testid)
   push('aria', info.ariaLabel)
   push('name', info.name)
   const text = anchorNormText(info.text ?? '')
   if (text.length >= 2) chain.push({ k: 'text', v: text })
+  push('controlType', info.controlType)
   push('path', info.path)
   return chain
 }
@@ -89,9 +101,13 @@ function escAttr(v: string): string {
   return v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-/** المحدّد الخام لمرشح (مرشح النص يُعالَج بالترشيح لا بالمحدِّد — انظر TEXT_ANCHOR_SEL) */
-export function anchorToSelector(c: AnchorCandidate): string {
+/** المحدّد الخام لمرشح (مرشح النص يُعالَج بالترشيح لا بالمحدِّد — انظر TEXT_ANCHOR_SEL).
+ *  مرشّحا UIA لا مقابل CSS لهما ⇐ null صريح لا محدِّد مخترَع */
+export function anchorToSelector(c: AnchorCandidate): string | null {
   switch (c.k) {
+    case 'automationId':
+    case 'controlType':
+      return null
     case 'id':
       return `[id="${escAttr(c.v)}"]`
     case 'testid':
@@ -133,10 +149,26 @@ export const TEXT_ANCHOR_SEL = [
   'input[type="button"]',
 ].join(',')
 
-/** واجهة الحل — DOM محقون فتبقى النواة نقية وقابلة للفحص */
+/**
+ * منفذ الحل — يعيد العناصر المطابقة **لمرشّح واحد**، والنواة تحكم بالفرادة.
+ * لا CSS في الواجهة: الويب يبنيه بـcssAnchorFinder، والديسكتوب يبني IUIAutomationCondition مباشرة.
+ */
 export interface AnchorDom<E> {
-  queryAll(sel: string): E[]
-  textOf(el: E): string
+  find(c: AnchorCandidate): E[]
+}
+
+/** محوّل الويب: مرشّح ← محدِّد CSS، ومرشّح النص ← عناصر TEXT_ANCHOR_SEL بنصها المطبَّع */
+export function cssAnchorFinder<E>(select: (sel: string) => E[], textOf: (el: E) => string): AnchorDom<E> {
+  return {
+    find(c) {
+      if (c.k === 'text') {
+        const want = anchorNormText(c.v)
+        return select(TEXT_ANCHOR_SEL).filter((el) => anchorNormText(textOf(el)) === want)
+      }
+      const sel = anchorToSelector(c)
+      return sel === null ? [] : select(sel)
+    },
+  }
 }
 
 export interface AnchorHit<E> {
@@ -153,14 +185,7 @@ export function resolveAnchor<E>(chain: AnchorChain, dom: AnchorDom<E>): AnchorH
     // حماية الأدلة القديمة: مرشّح مبنيّ على معرّفٍ متطاير قد يطابق عنصرًا خاطئًا «فريدًا» — نتجاوزه
     if (c.k === 'id' && isEphemeralId(c.v)) continue
     if (c.k === 'path' && pathHasEphemeralId(c.v)) continue
-    if (c.k === 'text') {
-      const matches = dom
-        .queryAll(TEXT_ANCHOR_SEL)
-        .filter((el) => anchorNormText(dom.textOf(el)) === anchorNormText(c.v))
-      if (matches.length === 1 && matches[0] !== undefined) return { el: matches[0], via: i }
-      continue
-    }
-    const matches = dom.queryAll(anchorToSelector(c))
+    const matches = dom.find(c)
     if (matches.length === 1 && matches[0] !== undefined) return { el: matches[0], via: i }
   }
   return null

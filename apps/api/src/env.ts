@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
+import { parseCorsOrigins } from './lib/cors-origins'
 
 const APP_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 
@@ -24,6 +25,8 @@ const zEnv = z.object({
     .default('http://localhost:8787'),
   // VOX-04: مفتاح التفريغ (قروك) — اختياري؛ غيابه لا يكسر الإقلاع، والنقطة تردّ 503 صادقة
   GROQ_API_KEY: z.string().trim().min(1).optional(),
+  // DTOP-04: أصول CORS المسموحة — اختياري؛ غيابه = الافتراضي (سلوك ما قبل الإعداد)
+  CORS_ORIGINS: z.string().optional(),
 })
 
 export interface Env {
@@ -32,6 +35,7 @@ export interface Env {
   cookieSecret: string
   publicBase: string
   groqApiKey?: string
+  corsOrigins: Array<string | RegExp>
 }
 
 function readEnvFile(p: string): Record<string, string> {
@@ -63,6 +67,7 @@ export function parseEnv(map: Record<string, string>): Env {
     cookieSecret: v.COOKIE_SECRET,
     publicBase: v.PUBLIC_BASE,
     groqApiKey: v.GROQ_API_KEY,
+    corsOrigins: parseCorsOrigins(v.CORS_ORIGINS),
   }
 }
 

@@ -6,7 +6,7 @@ import { bookmarks, folders, guides, shares, stepComments } from '../db/schema'
 import type { Auth } from '../auth/session'
 import { zAppendSteps, zCreateGuide, zGuideMeta, zListGuidesQuery, type GuideDto } from '@dalili/shared'
 import { deleteGuideIndex, indexGuide } from '../search/index'
-import { canAppendSteps, embedIdsOf, primarySiteOf } from '@dalili/core'
+import { canAppendSteps, embedIdsOf, primarySourceOf } from '@dalili/core'
 import { memberRole } from '../ws/roles'
 import { embedGuideSafe } from '../embeddings/store'
 import type { EmbeddingProvider } from '../embeddings/provider'
@@ -16,6 +16,11 @@ import { registerSharingRoutes } from './sharing'
 import { registerVersionsRoutes } from './guides-versions'
 import type { SttProvider } from '../stt/provider'
 import type { Db } from '../db/client'
+import type { FileSigner } from '../lib/file-cap'
+import { publicGuide, signForMember, stripServerUrls } from '../lib/guide-files'
+import { parseStoredGuide, toV2 } from '../lib/guide-v2'
+import type { Idempotency } from '../lib/idempotency'
+import type { Derivatives } from '../lib/derivatives'
 
 /** أول لقطة في الدليل — مصغّرة القوائم (PERF-05/02): المصغّرة إن وجدت وإلا الأصل */
 function thumbOf(guide: GuideDto): string | null {
@@ -32,13 +37,25 @@ export function registerGuideRoutes(
   publicBase: string,
   sqlite: Database.Database,
   filesDir: string,
+  /** خصوصيّة ٢ب: موقِّع روابط الملفّات — كل دليل يخرج بروابط موقَّعة */
+  signer: FileSigner,
+  /** خصوصيّة ٢ب: مشتقّات الضيف المحروقة — تُولَّد في خيط عامل */
+  derivatives: Derivatives,
+  /** DTOP-02: إنشاء الدليل المعاد بالمفتاح نفسه يعيد المعرّف نفسه */
+  idempotency: Idempotency,
   stt?: SttProvider,
   /** SRCH-06: بعد كل كتابة تُحدَّث بصمة المعنى بأمان تام — فشلها لا يعني شيئًا للكتابة */
   embeddings?: EmbeddingProvider,
 ) {
   // الدوال المشتركة بمصدر واحد مع نظرة المكتبة — لا تفرّق قائمة عن عدّاد
   const { ownedGuideOr404, visibleGuideOr404, requireNotViewer, shareInfoFor, summaryById, runList } =
-    makeGuideHelpers(db, auth, publicBase)
+    makeGuideHelpers(db, auth, publicBase, signer)
+
+  /** خصوصيّة ٢ب: تعديل دليل مُشارَك يسخّن مشتقّاته في الخلفية — الضيف التالي لا ينتظر الحرق */
+  function warmShared(id: string, guide: GuideDto) {
+    const live = shareInfoFor(id)
+    if (live) void publicGuide(guide, live.token, signer, derivatives.ensure).catch(() => {})
+  }
 
   app.post('/api/guides', { preHandler: auth.requireAuth }, async (req, reply) => {
     const user = auth.readUser(req)!
@@ -50,14 +67,20 @@ export function registerGuideRoutes(
         errorAr: `دليل غير صالح: ${parsed.error.issues[0]?.path.join('.') ?? ''} — ${parsed.error.issues[0]?.message ?? ''}`,
       })
     }
-    const incoming = parsed.data.guide
+    // خصوصيّة ٢ب: روابط الملفّات يملكها الخادم — لا يُخزَّن توقيع منتهٍ ولا API_BASE قديم
+    // DTOP-01: الكتابة v2 دائمًا — امتداد قديم في البرّيّة يرسل v1 فيُرقّى هنا
+    const incoming = toV2(stripServerUrls(parsed.data.guide as GuideDto))
+    // DTOP-02: بعد فحص الدليل — دليل فاسد يُرفض دائمًا ولا يحجز مفتاحًا
+    const idem = idempotency.begin(req, user.id, 'guides.create')
+    if (idem.kind === 'rejected') return reply.code(idem.status).send({ errorAr: idem.errorAr })
+    if (idem.kind === 'replay') return reply.code(idem.status).send(idem.body)
     const ws = auth.ensurePersonalWorkspace(user.id, user.email)
     const id = nanoid(12)
     const now = new Date().toISOString()
     const guide: GuideDto = { ...incoming, id, createdAt: now, updatedAt: now }
     // المعاملة الواحدة: البيانات + الأعمدة المشتقة + الفهرس — أو لا شيء (SRCH-00 §4.3)
     // WS-02: كل دليل يبدأ «خاصًا» — النشر للمساحة صريح من meta (قرار المالك 2026-09-03)
-    sqlite.transaction(() => {
+    const create = sqlite.transaction(() => {
       db.insert(guides)
         .values({
           id,
@@ -69,13 +92,21 @@ export function registerGuideRoutes(
           thumbFileId: thumbOf(guide),
           createdAt: now,
           updatedAt: now,
-          site: primarySiteOf(guide.steps),
+          site: primarySourceOf(guide.steps),
           // BKL-01: النوع عمودًا مشتقًا — غيابه من العقد يعني دليلًا
           kind: guide.kind ?? 'guide',
         })
         .run()
       indexGuide(sqlite, guide)
-    })()
+      // DTOP-02: الردّ يُثبَّت داخل معاملة الإنشاء — الدليل ومفتاحه معًا أو لا شيء
+      if (idem.kind === 'fresh') idempotency.remember(user.id, idem.key, 'guides.create', 200, { id })
+    })
+    try {
+      create()
+    } catch (err) {
+      if (idem.kind === 'fresh') idempotency.release(user.id, idem.key)
+      throw err
+    }
     await embedGuideSafe(sqlite, embeddings, guide)
     return { id }
   })
@@ -100,12 +131,13 @@ export function registerGuideRoutes(
     // BKL-01: السلة حقيقة يقولها الخادم — بطاقة الدليل المضمّن لا تخمّنها من غياب صف
     const deletedAt = row.deletedAt ?? undefined
     // إعدادات المشاركة والتنظيم للمالك وحده — الغير يرى المحتوى فقط
+    // خصوصيّة ٢ب: من يرى الدليل يأخذ روابط موقَّعة لصوره — المعرّف وحده لا يفتح شيئًا
     if (row.userId !== user.id) {
-      return { guide: JSON.parse(row.data) as GuideDto, share: null, deletedAt }
+      return { guide: signForMember(parseStoredGuide(row.data), signer), share: null, deletedAt }
     }
     const share = shareInfoFor(id)
     return {
-      guide: JSON.parse(row.data) as GuideDto,
+      guide: signForMember(parseStoredGuide(row.data), signer),
       share,
       deletedAt,
       // LIB-03: المحرر يعرض الوسوم ويحررها — بيانات تنظيم بجانب المحتوى
@@ -137,7 +169,7 @@ export function registerGuideRoutes(
       }
     }
     const now = new Date().toISOString()
-    const guide: GuideDto = { ...parsed.data.guide, id, createdAt: row.createdAt, updatedAt: now }
+    const guide: GuideDto = { ...toV2(stripServerUrls(parsed.data.guide as GuideDto)), id, createdAt: row.createdAt, updatedAt: now }
     // الفهرسة في نفس معاملة التحرير — أثر التحرير يظهر في البحث فورًا (ب11)
     // الوسوم عمود تنظيمي خارج data — تحرير المحتوى لا يُسقطها من الفهرس
     const tags = parseTags(row.tags)
@@ -149,13 +181,14 @@ export function registerGuideRoutes(
           stepCount: guide.steps.length,
           thumbFileId: thumbOf(guide),
           updatedAt: now,
-          site: primarySiteOf(guide.steps),
+          site: primarySourceOf(guide.steps),
         })
         .where(eq(guides.id, id))
         .run()
       indexGuide(sqlite, guide, tags)
     })()
     await embedGuideSafe(sqlite, embeddings, guide, tags)
+    warmShared(id, guide)
     return { ok: true }
   })
 
@@ -202,12 +235,12 @@ export function registerGuideRoutes(
       }
       // الوسوم تدخل الفهرس وتخرج منه في نفس لحظة تغييرها — كأي نص (LIB-03)
       if (tags !== undefined) {
-        indexGuide(sqlite, JSON.parse(row.data) as GuideDto, newTags)
+        indexGuide(sqlite, parseStoredGuide(row.data), newTags)
       }
     })()
     // SRCH-06: تغيّر الوسوم = تغيّرت بصمة المعنى — يُعاد التضمين خارج المعاملة
     if (tags !== undefined) {
-      await embedGuideSafe(sqlite, embeddings, JSON.parse(row.data) as GuideDto, newTags)
+      await embedGuideSafe(sqlite, embeddings, parseStoredGuide(row.data), newTags)
     }
     return summaryById(user.id, id)
   })
@@ -222,7 +255,7 @@ export function registerGuideRoutes(
     if (!row) {
       return reply.code(404).send({ errorAr: 'الدليل غير موجود' })
     }
-    const original = JSON.parse(row.data) as GuideDto
+    const original = parseStoredGuide(row.data)
     const newId = nanoid(12)
     const now = new Date().toISOString()
     const tags = parseTags(row.tags)
@@ -243,7 +276,7 @@ export function registerGuideRoutes(
           starred: 0,
           tags: row.tags,
           deletedAt: null,
-          site: primarySiteOf(copy.steps),
+          site: primarySourceOf(copy.steps),
           // BKL-01: نسخة الكرّاسة تبقى كرّاسة
           kind: row.kind,
         })
@@ -275,22 +308,24 @@ export function registerGuideRoutes(
     if (row.deletedAt) {
       return reply.code(400).send({ errorAr: 'الدليل في السلة — استعده أولًا ثم أضف الخطوات' })
     }
-    const { steps, insertAt } = parsed.data
+    const { insertAt } = parsed.data
+    const steps = stripServerUrls({ steps: parsed.data.steps } as GuideDto).steps
     const cap = canAppendSteps(row.stepCount, steps.length)
     if (!cap.ok) {
       return reply.code(400).send({ errorAr: cap.reason })
     }
-    const current = JSON.parse(row.data) as GuideDto
+    const current = parseStoredGuide(row.data)
     const at = insertAt ?? current.steps.length
     if (at > current.steps.length) {
       return reply.code(400).send({ errorAr: 'موضع الإدراج خارج نطاق خطوات الدليل' })
     }
     const now = new Date().toISOString()
-    const guide: GuideDto = {
+    // DTOP-01: الخطوات الملحقة من امتداد قديم بلا source تُرقّى مع الدليل
+    const guide: GuideDto = toV2({
       ...current,
       steps: [...current.steps.slice(0, at), ...steps, ...current.steps.slice(at)],
       updatedAt: now,
-    }
+    })
     const tags = parseTags(row.tags)
     sqlite.transaction(() => {
       db.update(guides)
@@ -299,13 +334,14 @@ export function registerGuideRoutes(
           stepCount: guide.steps.length,
           thumbFileId: thumbOf(guide),
           updatedAt: now,
-          site: primarySiteOf(guide.steps),
+          site: primarySourceOf(guide.steps),
         })
         .where(eq(guides.id, id))
         .run()
       indexGuide(sqlite, guide, tags)
     })()
     await embedGuideSafe(sqlite, embeddings, guide, tags)
+    warmShared(id, guide)
     return { id, stepCount: guide.steps.length }
   })
 
@@ -348,7 +384,7 @@ export function registerGuideRoutes(
     if (!row || !row.deletedAt) {
       return reply.code(404).send({ errorAr: 'لا يوجد دليل محذوف بهذا المعرّف' })
     }
-    const guide = JSON.parse(row.data) as GuideDto
+    const guide = parseStoredGuide(row.data)
     sqlite.transaction(() => {
       db.update(guides).set({ deletedAt: null }).where(eq(guides.id, id)).run()
       indexGuide(sqlite, guide, parseTags(row.tags))
@@ -379,8 +415,8 @@ export function registerGuideRoutes(
   })
 
   // المشاركة وعرضها العام — مسارها المستقل (نفس السلوك حرفًا)
-  registerSharingRoutes(app, db, auth, publicBase, { ownedGuideOr404 })
+  registerSharingRoutes(app, db, auth, publicBase, { ownedGuideOr404, signer, derivatives })
 
   // VER-01: سجل الإصدارات — POST يلتقط عند «تم» + GET قائمة + GET نسخة (المالك وحده)
-  registerVersionsRoutes(app, db, sqlite, auth, { ownedGuideOr404 })
+  registerVersionsRoutes(app, db, sqlite, auth, { ownedGuideOr404, signer })
 }

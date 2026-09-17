@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { zAppendSteps, zCreateAssignment, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zUpdateComment, zVersionSummary } from './contract'
+import { zAppendSteps, zCreateAssignment, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zStepSource, zUpdateComment, zVersionSummary } from './contract'
 
 /** ASG: عقد إنشاء الإسناد — عدة أهداف بأنواع محصورة، وقائمة غير فارغة */
 describe('zCreateAssignment', () => {
@@ -160,6 +160,18 @@ describe('zStep target.anchor', () => {
   it('يرفض نوع مرشح مجهولًا أو قيمة فارغة — السلسلة كلها تسقط لا تُهمل بصمت', () => {
     expect(zStep.safeParse({ ...base, target: { anchor: [{ k: 'hack', v: 'x' }] } }).success).toBe(false)
     expect(zStep.safeParse({ ...base, target: { anchor: [{ k: 'id', v: '' }] } }).success).toBe(false)
+  })
+
+  it('يقبل مرشّحي UIA (automationId وcontrolType) لخطوات الديسكتوب ويرفض قيمتهما الفارغة', () => {
+    const uia = [
+      { k: 'automationId', v: 'btnSave' },
+      { k: 'controlType', v: 'Button' },
+    ]
+    const r = zStep.safeParse({ ...base, target: { anchor: uia } })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.target?.anchor).toEqual(uia)
+    expect(zStep.safeParse({ ...base, target: { anchor: [{ k: 'automationId', v: '' }] } }).success).toBe(false)
+    expect(zStep.safeParse({ ...base, target: { anchor: [{ k: 'controlType', v: '' }] } }).success).toBe(false)
   })
 })
 
@@ -441,5 +453,37 @@ describe('zGuideVersionDetails', () => {
     }
     const details = { id: 'v1', guideId: 'g1', createdAt: 'z', authorId: 'u1', guide: g }
     expect(zGuideVersionDetails.parse(details).guide.id).toBe('g1')
+  })
+})
+
+/** DTOP-01: مصدر الخطوة — ويب/ديسكتوب/كاميرا، وجمعيّة الأدلة القديمة */
+describe('DTOP-01: مصدر الخطوة', () => {
+  const base = { id: 's1', kind: 'click', title: 'ت', target: {}, sensitive: false, ts: 1 }
+  it('خطوة ديسكتوب وكاميرا صالحة بلا url/pageTitle', () => {
+    expect(zStep.safeParse({ ...base, source: { kind: 'desktop', processName: 'EXCEL.EXE', windowTitle: 'دفتر1', appId: 'app:EXCEL.EXE' } }).success).toBe(true)
+    expect(zStep.safeParse({ ...base, source: { kind: 'camera' } }).success).toBe(true)
+  })
+  it('بلا رابطين وبلا مصدر تُرفض — ورابط بلا عنوان كذلك', () => {
+    expect(zStep.safeParse(base).success).toBe(false)
+    expect(zStep.safeParse({ ...base, url: 'https://x.example' }).success).toBe(false)
+  })
+  it('v1 (الرابطان ولو فارغين) تبقى صالحة — جمعيّة بلا ترحيل', () => {
+    expect(zStep.safeParse({ ...base, url: '', pageTitle: '' }).success).toBe(true)
+  })
+  it('source بمصدر غير معروف يُرفض', () => {
+    expect(zStepSource.safeParse({ kind: 'ftp' }).success).toBe(false)
+    expect(zStep.safeParse({ ...base, source: { kind: 'ftp' } }).success).toBe(false)
+  })
+  it('ديسكتوب بـieMode ورابط اختياري يمرّ', () => {
+    expect(zStep.safeParse({
+      ...base,
+      source: { kind: 'desktop', processName: 'msedge.exe', windowTitle: 'بوابة', appId: 'app:msedge.exe', ieMode: true, url: 'https://gov.example' },
+    }).success).toBe(true)
+  })
+  it('zGuide يقبل schemaVersion ‏١ و٢ ويرفض ٣', () => {
+    const g = { id: 'g1', title: 't', locale: 'ar', dir: 'rtl', createdAt: 'x', updatedAt: 'y', steps: [] }
+    expect(zGuide.safeParse({ ...g, schemaVersion: 1 }).success).toBe(true)
+    expect(zGuide.safeParse({ ...g, schemaVersion: 2 }).success).toBe(true)
+    expect(zGuide.safeParse({ ...g, schemaVersion: 3 }).success).toBe(false)
   })
 })

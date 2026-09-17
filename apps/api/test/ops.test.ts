@@ -39,9 +39,10 @@ describe('parseEnv (OPS-05)', () => {
   })
 
   it('GROQ_API_KEY (VOX-04) يُمرَّر عند وجوده وغيابه لا يكسر الإقلاع', () => {
-    const secret = 'very-secret-value-1234'
+    const secret = 'test-only-cookie-secret'
+    const sttKey = 'env-passthrough-value-not-a-key'
     expect(parseEnv({ COOKIE_SECRET: secret }).groqApiKey).toBeUndefined()
-    expect(parseEnv({ COOKIE_SECRET: secret, GROQ_API_KEY: 'gsk_abc123' }).groqApiKey).toBe('gsk_abc123')
+    expect(parseEnv({ COOKIE_SECRET: secret, GROQ_API_KEY: sttKey }).groqApiKey).toBe(sttKey)
   })
 })
 

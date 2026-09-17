@@ -43,6 +43,8 @@ export const zScreenshot = z.union([
     fileUrl: z.string().optional(),
     /** PERF-02: معرّف المصغّرة (320px ≤30KB) للقوائم — الأصل يبقى للعارض */
     thumbFileId: z.string().optional(),
+    /** خصوصيّة ٢ب: رابط المصغّرة الموقَّع — يملكه الخادم، يُنزع عند الكتابة ويُركَّب عند القراءة */
+    thumbUrl: z.string().optional(),
     blurRects: z.array(zRect).default([]),
     crop: zRect.optional(),
     autoBlurred: z.boolean().optional(),
@@ -72,6 +74,9 @@ export const zAnchorCandidate = z.discriminatedUnion('k', [
   z.object({ k: z.literal('name'), v: z.string().min(1).max(200) }),
   z.object({ k: z.literal('text'), v: z.string().min(1).max(80) }),
   z.object({ k: z.literal('path'), v: z.string().min(1).max(600) }),
+  /** مرشّحا UIA لخطوات الديسكتوب — مطابقة AnchorCandidate في core (يحرسها اختبار اتساق النوع) */
+  z.object({ k: z.literal('automationId'), v: z.string().min(1).max(200) }),
+  z.object({ k: z.literal('controlType'), v: z.string().min(1).max(60) }),
 ])
 
 /**
@@ -96,6 +101,24 @@ export const zGuideEmbed = z.object({
   expanded: z.boolean(),
 })
 
+/** DTOP-01: مصدر التقاط الخطوة — ويب أو ديسكتوب (IE-mode نكهة منه) أو كاميرا (الجوّال لآلة فيزيائية).
+ *  المرساة ليست خاصيّة المصدر — تبقى target.anchor على الخطوة نفسها لأي مصدر. */
+export const zStepSource = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('web'), url: z.string(), pageTitle: z.string() }),
+  z.object({
+    kind: z.literal('desktop'),
+    processName: z.string(),
+    windowTitle: z.string(),
+    /** AUMID ومعه مسار التنفيذي احتياطًا */
+    appId: z.string(),
+    uiaFramework: z.string().optional(),
+    ieMode: z.boolean().optional(),
+    url: z.string().optional(),
+  }),
+  z.object({ kind: z.literal('camera'), deviceModel: z.string().optional() }),
+])
+export type StepSourceDto = z.infer<typeof zStepSource>
+
 export const zStep = z.object({
   id: z.string(),
   kind: zStepKind,
@@ -112,8 +135,11 @@ export const zStep = z.object({
   }),
   value: z.string().optional(),
   sensitive: z.boolean(),
-  url: z.string(),
-  pageTitle: z.string(),
+  /** ‏v1: رابط الصفحة وعنوانها — غيابهما معًا يوجب وجود source (superRefine أسفل) */
+  url: z.string().optional(),
+  pageTitle: z.string().optional(),
+  /** DTOP-01: مصدر الخطوة الصريح — الأدلة القديمة (v1) بلا source تبقى صالحة، والترحيل الكسول في core/migrate */
+  source: zStepSource.optional(),
   ts: z.number(),
   screenshot: zScreenshot.optional(),
   /** BLK-01 + BKL-01: نوع الكتلة — اختياري جمعي (الأدلة القديمة صالحة) */
@@ -125,6 +151,15 @@ export const zStep = z.object({
   /** VOX-09 «ميك الخطوة»: تعليق صوتي مدموج مع الخطوة — اختياري جمعي (الأدلة القديمة صالحة).
    * ‏pending = الصوت محفوظ محليًا ولم يُرفع/يُفرَّغ بعد (فشل الخدمة لا يفقد الصوت أبدًا) */
   voice: zStepVoice.optional(),
+}).superRefine((s, ctx) => {
+  // DTOP-01: كل خطوة لها هوية مصدر — ثنائية الويب (v1: الرابطان معًا) أو source صريح (v2)
+  if (!(s.url !== undefined && s.pageTitle !== undefined) && !s.source) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['source'],
+      message: 'الخطوة تحتاج رابط صفحة ويب أو مصدر التقاط',
+    })
+  }
 })
 
 export type StepVoiceDto = z.infer<typeof zStepVoice>
@@ -141,7 +176,9 @@ export const zAudioMeta = z.object({
 
 export const zGuide = z.object({
   id: z.string(),
-  schemaVersion: z.literal(1),
+  /** DTOP-01: ١ = مسطّح (url/pageTitle على الخطوة) · ٢ = source صريح — القِدم مقبول حتى تهجرة الإضافة،
+   *  والقراءة تمرّ عبر migrateGuide في core فتنتج ٢ دائمًا */
+  schemaVersion: z.union([z.literal(1), z.literal(2)]),
   /** BKL-01: نوع المستند — غيابه دليل. توسيع جمعي بلا رفع schemaVersion */
   kind: z.enum(['guide', 'booklet']).optional(),
   title: z.string(),
@@ -201,6 +238,8 @@ export interface GuideSummaryDto {
   shareUrl?: string
   /** PERF-02: معرّف مصغّرة أول لقطة — القوائم تعرضها لا الأصل؛ PNG بلا مصغّة */
   thumbFileId?: string
+  /** خصوصيّة ٢ب: رابط المصغّرة الموقَّع — العميل يعرضه ولا يركّب رابطًا من المعرّف */
+  thumbUrl?: string
   /** LIB-02..03: بيانات تنظيم المكتبة */
   starred: boolean
   folderId: string | null
@@ -530,6 +569,8 @@ export type SearchHitDto = {
   score: number
   /** SRCH-01: مصغّرة الدليل — النتيجة تعرض صورة لا عنوانًا فقط */
   thumbFileId?: string
+  /** خصوصيّة ٢ب: رابط المصغّرة الموقَّع */
+  thumbUrl?: string
 }
 
 export type SearchResponseDto = {
@@ -552,6 +593,8 @@ export type SemanticHitDto = {
   score: number
   updatedAt: string
   thumbFileId?: string
+  /** خصوصيّة ٢ب: رابط المصغّرة الموقَّع */
+  thumbUrl?: string
 }
 
 // ——— إدارة الفريق (Team Management) ———
@@ -660,4 +703,27 @@ export const zGuideVersionDetails = z.object({
   guide: zGuide,
 })
 export type GuideVersionDetailsDto = z.infer<typeof zGuideVersionDetails>
+
+/** DTOP-03: اقتران تطبيق الديسكتوب برمز (نمط RFC 8628) — بلا كلمة سرّ داخل التطبيق */
+export const zDeviceStart = z.object({ deviceName: z.string().trim().min(1).max(60) })
+export const zDeviceToken = z.object({ deviceCode: z.string().min(20).max(80) })
+export const zDeviceApprove = z.object({ userCode: z.string().min(8).max(12), approve: z.boolean() })
+
+export interface DeviceStartDto {
+  deviceCode: string
+  userCode: string
+  expiresIn: number
+  interval: number
+}
+export interface DevicePendingDto {
+  userCode: string
+  deviceName: string
+  createdAt: string
+}
+export interface DeviceDto {
+  id: string
+  deviceName: string
+  createdAt: string
+  lastUsedAt: string | null
+}
 

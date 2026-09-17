@@ -4,7 +4,7 @@ import { assembleGuide } from '../src/assemble'
 const FIXED = 1700000000000
 
 describe('assembleGuide — التجميع', () => {
-  it('يعيّن معرفات فريدة وعناوين وschemaVersion 1', () => {
+  it('يعيّن معرفات فريدة وعناوين وschemaVersion 2 (DTOP-01)', () => {
     const g = assembleGuide(
       [
         { kind: 'navigate', target: {}, url: 'https://x/a', pageTitle: 'الرئيسة', ts: 1 },
@@ -12,7 +12,7 @@ describe('assembleGuide — التجميع', () => {
       ],
       FIXED,
     )
-    expect(g.schemaVersion).toBe(1)
+    expect(g.schemaVersion).toBe(2)
     expect(g.locale).toBe('ar')
     expect(g.dir).toBe('rtl')
     expect(g.title).toBe('دليل: الرئيسة')

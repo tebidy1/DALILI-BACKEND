@@ -7,7 +7,13 @@ import rateLimit from '@fastify/rate-limit'
 import { createDb } from './db/client'
 import { makeAuth } from './auth/session'
 import { checkReady } from './lib/ready'
+import { makeFileSigner } from './lib/file-cap'
+import { createBurnPool } from './lib/burn-pool'
+import { createDerivatives } from './lib/derivatives'
+import { makeIdempotency } from './lib/idempotency'
+import { parseCorsOrigins } from './lib/cors-origins'
 import { registerAuthRoutes } from './routes/auth'
+import { registerDeviceRoutes } from './routes/devices'
 import { registerUploadRoutes } from './routes/uploads'
 import { registerGuideRoutes } from './routes/guides'
 import { registerCommentRoutes } from './routes/comments'
@@ -36,6 +42,8 @@ export interface AppOptions {
   stt?: SttProvider
   /** SRCH-06: مزوّد التضمين — يُبنى في index.ts (المحلي) ويُحقن هنا؛ غيابه = حرفي فقط */
   embeddings?: EmbeddingProvider
+  /** DTOP-04: أصول CORS — غيابه = الافتراضي */
+  corsOrigins?: Array<string | RegExp>
 }
 
 export async function createApp(opts: AppOptions) {
@@ -59,7 +67,7 @@ export async function createApp(opts: AppOptions) {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
   await app.register(cors, {
-    origin: [/^chrome-extension:\/\//, /^http:\/\/(localhost|127\.0\.0\.1):5174$/],
+    origin: opts.corsOrigins ?? parseCorsOrigins(undefined),
     credentials: true,
   })
   // VOX: السقف العام يتسع لصوت 25MB وفوقه هامش البروتوكول؛ حد كل نوع يُطبَّق داخل المعالج
@@ -75,6 +83,13 @@ export async function createApp(opts: AppOptions) {
   }
 
   const auth = makeAuth(db)
+  // خصوصيّة ٢ب: كل رابط ملفّ يخرج من الخادم موقَّع — مفتاحه مشتقّ من سرّ الكوكي
+  const signer = makeFileSigner(opts.cookieSecret)
+  // الحرق ~1.7s للقطة 1920×1080 بـjpeg-js النقيّة — خارج خيط الخادم إلزاميًّا
+  const burnPool = createBurnPool()
+  const derivatives = createDerivatives(db, filesDir, burnPool)
+  // DTOP-02: عدم التكرار للرفع وإنشاء الدليل — شبكة تنقطع لا تُنتج نسخًا مكرّرة
+  const idempotency = makeIdempotency(db)
   app.get('/health', async () => ({ ok: true, name: 'dalili-api' }))
   // OPS-02: الجهوزية — حيّ ≠ جاهز؛ القاعدة والقرص يُفحصان فعليًا لا افتراضًا
   app.get('/ready', async (_req, reply) => {
@@ -83,13 +98,15 @@ export async function createApp(opts: AppOptions) {
     return { ready: true, db: true, files: true }
   })
   registerAuthRoutes(app, db, auth, sqlite)
-  registerUploadRoutes(app, db, auth, filesDir)
+  // DTOP-03: اقتران تطبيق الديسكتوب — Bearer بجانب الكوكي
+  registerDeviceRoutes(app, db, auth)
+  registerUploadRoutes(app, db, auth, filesDir, signer, idempotency)
   // VOX-04: المزوّد المحقون (اختبار) أو المبني من مفتاح قروك، أو لا شيء (النقطة تردّ 503)
   const stt = opts.stt ?? (opts.groqApiKey ? createGroqSttProvider({ apiKey: opts.groqApiKey }) : undefined)
-  registerGuideRoutes(app, db, auth, opts.publicBase, sqlite, filesDir, stt, opts.embeddings)
+  registerGuideRoutes(app, db, auth, opts.publicBase, sqlite, filesDir, signer, derivatives, idempotency, stt, opts.embeddings)
   registerCommentRoutes(app, db, auth)
   registerFolderRoutes(app, db, auth)
-  registerSearchRoutes(app, sqlite, auth, opts.embeddings)
+  registerSearchRoutes(app, sqlite, auth, signer, opts.embeddings)
   registerDiscoverRoutes(app, sqlite, auth)
   registerTeamRoutes(app, db, auth)
   registerInviteRoutes(app, db, auth, opts.publicBase)
@@ -135,6 +152,7 @@ export async function createApp(opts: AppOptions) {
     sqlite,
     async close() {
       await app.close()
+      await burnPool.close()
       sqlite.close()
     },
   }

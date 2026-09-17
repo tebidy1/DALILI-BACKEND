@@ -12,7 +12,7 @@ function multipartBody(buf: Buffer, filename = 'shot.jpg', mime = 'image/jpeg') 
 }
 
 describe('الرفع والملفات', () => {
-  it('رفع JPEG → fileId → جلب عام بنوع صحيح', async () => {
+  it('رفع JPEG → رابط موقَّع → جلب بنوع صحيح', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'upload@dalili.sa')
 
@@ -23,9 +23,9 @@ describe('الرفع والملفات', () => {
       payload: multipartBody(Buffer.concat([JPEG_MAGIC, Buffer.alloc(64)])),
     })
     expect(res.statusCode).toBe(200)
-    const { fileId } = res.json() as { fileId: string }
+    const { fileUrl } = res.json() as { fileUrl: string }
 
-    const file = await app.inject({ method: 'GET', url: `/files/${fileId}` })
+    const file = await app.inject({ method: 'GET', url: fileUrl })
     expect(file.statusCode).toBe(200)
     expect(file.headers['content-type']).toBe('image/jpeg')
     expect(Buffer.from(file.rawPayload).subarray(0, 3)).toEqual(JPEG_MAGIC.subarray(0, 3))

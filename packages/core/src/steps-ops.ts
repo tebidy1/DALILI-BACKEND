@@ -64,7 +64,7 @@ export function replaceStepUrls(
   if (!fromParsed || !toParsed || !toParsed.host) return { steps, changed: 0 }
   let changed = 0
   const out = steps.map((s) => {
-    const raw = s.url.trim()
+    const raw = (s.url ?? '').trim()
     const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
     let parsed: URL
     try {

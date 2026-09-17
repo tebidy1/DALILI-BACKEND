@@ -1,8 +1,8 @@
 import { and, asc, desc, eq, or, sql, type SQL } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify'
 import type { Auth } from '../auth/session'
-import { assignmentProgress, assignments, guides, users, workspaceMembers, workspaces } from '../db/schema'
-import { memberRole } from '../ws/roles'
+import { assignmentProgress, assignments, guides, users, workspaces } from '../db/schema'
+import { assignmentTargetsMe, memberRole, memberTeamId } from '../ws/roles'
 import type { Db } from '../db/client'
 
 /**
@@ -36,12 +36,7 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Db, auth: Auth) 
       .all()
 
     // ASG: عدد الإسنادات التي تخصّني (أنا/فريقي/المساحة) على دليل حيّ ولم أفتحها بعد
-    const me = db
-      .select({ teamId: workspaceMembers.teamId })
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, ws.id), eq(workspaceMembers.userId, user.id)))
-      .get()
-    const myTeam = me?.teamId ?? '__none__'
+    const myTeam = memberTeamId(db, ws.id, user.id) ?? '__none__'
     const assignedNewCount = Number(
       db
         .select({ c: sql<number>`count(*)` })
@@ -56,11 +51,7 @@ export function registerLibraryRoutes(app: FastifyInstance, db: Db, auth: Auth) 
             eq(assignments.workspaceId, ws.id),
             sql`${guides.deletedAt} IS NULL`,
             sql`${assignmentProgress.openedAt} IS NULL`,
-            sql`(
-              (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${user.id})
-              OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
-              OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${ws.id})
-            )`,
+            assignmentTargetsMe(user.id, myTeam, ws.id),
           ),
         )
         .get()?.c ?? 0,

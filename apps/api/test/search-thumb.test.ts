@@ -24,12 +24,12 @@ async function upload(
   buf: Buffer,
   type: string,
   name: string,
-): Promise<{ fileId: string; thumbFileId?: string }> {
+): Promise<{ fileId: string; thumbFileId?: string; fileUrl: string; thumbUrl?: string }> {
   const fd = new FormData()
   fd.append('file', new Blob([new Uint8Array(buf)], { type }), name)
   const res = await app.inject({ method: 'POST', url: '/api/uploads', headers: { cookie }, payload: fd })
   expect(res.statusCode).toBe(200)
-  return res.json() as { fileId: string; thumbFileId?: string }
+  return res.json() as { fileId: string; thumbFileId?: string; fileUrl: string; thumbUrl?: string }
 }
 
 /** WebP مصغّر صالح البنية: توقيع RIFF…WEBP يكفي للشمّ — لا فكّ ولا مصغّرة */
@@ -120,11 +120,11 @@ describe('PERF-03: قبول WebP', () => {
   it('رفع WebP يُقبل بنوعه ويُخدَم image/webp — بلا مصغّرة كاذبة', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'webp1@dalili.sa')
-    const { fileId, thumbFileId } = await upload(app, cookie, webpHeader(), 'image/webp', 'shot.webp')
+    const { fileId, thumbFileId, fileUrl } = await upload(app, cookie, webpHeader(), 'image/webp', 'shot.webp')
     expect(fileId).toBeTruthy()
     expect(thumbFileId).toBeUndefined() // بلا فاكّ WebP نقية — صدق لا تزييف
 
-    const got = await app.inject({ method: 'GET', url: `/files/${fileId}` })
+    const got = await app.inject({ method: 'GET', url: fileUrl })
     expect(got.statusCode).toBe(200)
     expect(got.headers['content-type']).toBe('image/webp')
   })

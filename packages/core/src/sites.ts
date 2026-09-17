@@ -28,40 +28,108 @@ function hashString(str: string): number {
   return Math.abs(hash)
 }
 
-/**
- * موقع الدليل الأساسي (WS-05) — مضيف أول خطوة لها رابط صالح،
- * بأحرف صغيرة ودون www؛ سلسلة فارغة إن لم يوجد رابط صالح.
- * يُشتق عند الإنشاء والتحريك ويخزَّن عمودًا فالترشيح بلا فكّ JSON (قانون PERF-05).
- */
-export function primarySiteOf(steps: Array<{ url?: string }>): string {
-  for (const step of steps) {
-    const raw = step.url?.trim()
-    if (!raw) continue
-    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
-    try {
-      const host = new URL(candidate).hostname.toLowerCase().replace(/^www\./, '')
-      // مضيف بلا نقطة لا يُقبل إلا localhost — وإلا يمرّ أي كلمة مفردة (URL متساهل)
-      if (host && (host.includes('.') || host === 'localhost' || host === '127.0.0.1')) return host
-    } catch {
-      // رابط تالف — المحاولة التالية
-    }
+/** استخراج مضيف الرابط بأحرف صغيرة ودون www — مضيف بلا نقطة لا يُقبل إلا localhost (URL متساهل) */
+function hostOf(raw: string): string {
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+  try {
+    const host = new URL(candidate).hostname.toLowerCase().replace(/^www\./, '')
+    if (host && (host.includes('.') || host === 'localhost' || host === '127.0.0.1')) return host
+  } catch {
+    // رابط تالف — المحاولة التالية
   }
   return ''
+}
+
+/** DTOP-01: أسماء بشريّة لأشهر التطبيقات — الباقي يُشتقّ من اسم الملفّ */
+const APP_NAMES: Record<string, string> = {
+  'EXCEL.EXE': 'Excel',
+  'WINWORD.EXE': 'Word',
+  'POWERPNT.EXE': 'PowerPoint',
+  'OUTLOOK.EXE': 'Outlook',
+  'SAPLOGON.EXE': 'SAP GUI',
+  'MSEDGE.EXE': 'Edge',
+}
+
+/** مصدر كما تحتاجه دوال المواقع — بنية أعمّ من StepSource كي تقبل خطوات v1 وv2 معًا */
+type SiteSource = { kind?: string; url?: string; processName?: string; ieMode?: boolean }
+
+/** DTOP-01: مفتاح موقع التطبيق — اسم الملفّ التنفيذي بأحرف كبيرة: app:EXCEL.EXE */
+export function appSiteKey(processName: string): string {
+  const base = processName.split(/[\\/]/).pop() ?? processName
+  return `app:${base.trim().toUpperCase()}`
+}
+
+/** DTOP-01: تسمية بشريّة لقيمة عمود site — للشارات والمرشّحات في الويب */
+export function siteLabel(site: string): string {
+  if (site === 'camera') return 'الكاميرا'
+  if (!site.startsWith('app:')) return site
+  const exe = site.slice(4)
+  const known = APP_NAMES[exe]
+  if (known) return known
+  const stem = exe.replace(/\.EXE$/, '')
+  return stem.charAt(0) + stem.slice(1).toLowerCase()
+}
+
+/** رابط الخطوة القابل للاستعمال: v1 ثم مصدر الويب ثم IE-mode */
+function urlOfStep(step: { url?: string; source?: SiteSource }): string {
+  const legacy = step.url?.trim()
+  if (legacy) return legacy
+  const src = step.source
+  if (src?.kind === 'web' || (src?.kind === 'desktop' && src.ieMode)) return (src.url ?? '').trim()
+  return ''
+}
+
+/**
+ * موقع الدليل الأساسي (WS-05 → DTOP-01) — أول خطوة لها هويّة: مضيف رابط صالح (ويب/IE-mode)
+ * أو `app:<EXE>` للديسكتوب أو `camera`. سلوك الويب مطابق لسابقه حرفيًّا.
+ */
+export function primarySourceOf(steps: Array<{ url?: string; source?: SiteSource }>): string {
+  for (const step of steps) {
+    const raw = urlOfStep(step)
+    if (raw) {
+      const host = hostOf(raw)
+      if (host) return host
+    }
+    const src = step.source
+    if (src?.kind === 'desktop' && src.processName?.trim()) return appSiteKey(src.processName)
+    if (src?.kind === 'camera') return 'camera'
+  }
+  return ''
+}
+
+/**
+ * @deprecated استخدم primarySourceOf — الاسم القديم يفوّض إليها حتى تهجرة المستوردين.
+ * النسخة المجمَّدة داخل ترحيلات API معزولة عن هذه الدالة بحارس migrations-frozen.
+ */
+export function primarySiteOf(steps: Array<{ url?: string }>): string {
+  return primarySourceOf(steps)
 }
 
 /**
  * يستخرج جميع المواقع الفريدة التي التُقطت منها خطوات الدليل
  * وينسق أسماءها ويولد شارات بحرف أولي ولون مميز.
  */
-export function extractCapturedSites(steps: Array<{ url?: string; pageTitle?: string }>): CapturedSite[] {
+export function extractCapturedSites(steps: Array<{ url?: string; pageTitle?: string; source?: SiteSource }>): CapturedSite[] {
   const seen = new Set<string>()
   const result: CapturedSite[] = []
 
   for (const step of steps) {
-    if (!step.url) continue
+    const src = step.source
+    // DTOP-01: تطبيق ديسكتوب (غير IE-mode ذي رابط) ← شارة باسم التطبيق
+    if (src?.kind === 'desktop' && !(src.ieMode && src.url)) {
+      if (!src.processName?.trim()) continue
+      const host = appSiteKey(src.processName)
+      if (seen.has(host)) continue
+      seen.add(host)
+      const name = siteLabel(host)
+      result.push({ host, name, initial: name.charAt(0).toUpperCase(), color: SITE_COLORS[hashString(host) % SITE_COLORS.length] ?? '#2563eb' })
+      continue
+    }
+    const rawUrl = urlOfStep(step)
+    if (!rawUrl) continue
     try {
       // قبول البروتوكولات الصالحة
-      let urlStr = step.url.trim()
+      let urlStr = rawUrl
       if (!/^https?:\/\//i.test(urlStr)) {
         if (urlStr.startsWith('localhost') || urlStr.startsWith('127.0.0.1')) {
           urlStr = `http://${urlStr}`

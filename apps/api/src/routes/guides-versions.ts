@@ -6,6 +6,9 @@ import { zGuide } from '@dalili/shared'
 import type { Auth } from '../auth/session'
 import type { Db } from '../db/client'
 import { guideVersions } from '../db/schema'
+import type { FileSigner } from '../lib/file-cap'
+import { signForMember } from '../lib/guide-files'
+import { parseStoredGuide } from '../lib/guide-v2'
 
 /**
  * VER-01: سجل إصدارات الدليل — POST يلتقط لقطة عند «تم» بإسقاط تكرار متجاور،
@@ -25,6 +28,7 @@ export function registerVersionsRoutes(
       userId: string,
       id: string,
     ) => { data: string; title: string; stepCount: number; deletedAt: string | null } | null
+    signer: FileSigner
   },
 ) {
   app.post('/api/guides/:id/versions', { preHandler: auth.requireAuth }, async (req, reply) => {
@@ -103,7 +107,8 @@ export function registerVersionsRoutes(
     if (!row) {
       return reply.code(404).send({ errorAr: 'الإصدار غير موجود' })
     }
-    const parsed = zGuide.safeParse(JSON.parse(row.data))
+    // DTOP-01: نسخة محفوظة قبل المرحلة (v1) تُقرأ v2 كالدليل الحيّ
+    const parsed = zGuide.safeParse(parseStoredGuide(row.data))
     if (!parsed.success) {
       return reply.code(500).send({ errorAr: 'نسخة تالفة في السجل' })
     }
@@ -116,7 +121,8 @@ export function registerVersionsRoutes(
       guideId: row.guideId,
       createdAt: row.createdAt,
       authorId: row.authorId,
-      guide: parsed.data,
+      // خصوصيّة ٢ب: صور الإصدار القديم بروابط موقَّعة كالدليل الحيّ
+      guide: signForMember(parsed.data, helpers.signer),
     }
   })
 }

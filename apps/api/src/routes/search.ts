@@ -5,6 +5,7 @@ import { zSearchQuery, zSuggestQuery } from '@dalili/shared'
 import { EmptyQueryError, runSearch } from '../search/query'
 import { runSemanticSearch } from '../embeddings/store'
 import type { EmbeddingProvider } from '../embeddings/provider'
+import type { FileSigner } from '../lib/file-cap'
 
 /** سقف قائمة «أقرب الأدلة معنًى» — قائمة اختيار لا حائط نتائج (قرار المالك 2026-09-01) */
 const SEMANTIC_LIMIT = 8
@@ -18,8 +19,13 @@ export function registerSearchRoutes(
   app: FastifyInstance,
   sqlite: Database.Database,
   auth: Auth,
+  signer: FileSigner,
   embeddings?: EmbeddingProvider,
 ) {
+  /** خصوصيّة ٢ب: المصغّرة تُعرض برابطها الموقَّع — العميل لا يركّب رابطًا من معرّف */
+  const withThumb = <T extends { thumbFileId?: string }>(h: T): T & { thumbUrl?: string } =>
+    h.thumbFileId ? { ...h, thumbUrl: signer.original(h.thumbFileId) } : h
+
   app.get(
     '/api/search',
     { preHandler: auth.requireAuth, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
@@ -34,7 +40,8 @@ export function registerSearchRoutes(
     const wsId = auth.ensurePersonalWorkspace(user.id, user.email).id
     let literal: ReturnType<typeof runSearch>
     try {
-      literal = runSearch(sqlite, user.id, q, { limit, from, to, shared, folder, site }, wsId)
+      const raw = runSearch(sqlite, user.id, q, { limit, from, to, shared, folder, site }, wsId)
+      literal = { ...raw, hits: raw.hits.map(withThumb) }
     } catch (e) {
       if (e instanceof EmptyQueryError) return reply.code(400).send({ errorAr: e.message })
       throw e
@@ -46,7 +53,7 @@ export function registerSearchRoutes(
         limit: SEMANTIC_LIMIT,
         literalIds: literal.hits.map((h) => h.guideId),
       }, wsId)
-      if (semantic.length > 0) return { ...literal, semantic }
+      if (semantic.length > 0) return { ...literal, semantic: semantic.map(withThumb) }
       return literal
     } catch (e) {
       const reason = e instanceof Error && e.message ? e.message : 'تعذّر البحث بالمعنى الآن'
@@ -65,7 +72,8 @@ export function registerSearchRoutes(
     }
     const { q, limit } = parsed.data
     try {
-      return runSearch(sqlite, auth.readUser(req)!.id, q, { limit, suggest: true })
+      const raw = runSearch(sqlite, auth.readUser(req)!.id, q, { limit, suggest: true })
+      return { ...raw, hits: raw.hits.map(withThumb) }
     } catch (e) {
       if (e instanceof EmptyQueryError) return reply.code(400).send({ errorAr: e.message })
       throw e

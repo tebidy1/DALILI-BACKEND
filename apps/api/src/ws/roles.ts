@@ -1,6 +1,6 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { Db } from '../db/client'
-import { workspaceMembers } from '../db/schema'
+import { assignments, workspaceMembers } from '../db/schema'
 
 /**
  * WS-03: أدوار المساحة الثلاثة — مدير/منشئ/مشاهد.
@@ -20,4 +20,28 @@ export function memberRole(db: Db, workspaceId: string, userId: string): WsRole 
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .get()
   return row ? normalizeRole(row.role) : null
+}
+
+/** ASG: فريق العضو في المساحة — null إن لم يكن عضوًا. يُمرَّر لاحقًا لـassignmentTargetsMe */
+export function memberTeamId(db: Db, workspaceId: string, userId: string): string | null {
+  return (
+    db
+      .select({ teamId: workspaceMembers.teamId })
+      .from(workspaceMembers)
+      .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+      .get()?.teamId ?? null
+  )
+}
+
+/**
+ * ASG: قاعدة «هل يخصّني الإسناد؟» بمصدر واحد — أنا أو فريقي أو مساحتي —
+ * تتقاسمها بوابة القراءة في guides-shared وعدّاد المكتبة وقائمة /assigned
+ * كي لا يفرق بابٌ عن عدّادٍ عن قائمة. المتصل يستبدل فريق null بـ'__none__'.
+ */
+export function assignmentTargetsMe(userId: string, myTeam: string, wsId: string) {
+  return sql`(
+    (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${userId})
+    OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
+    OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${wsId})
+  )`
 }

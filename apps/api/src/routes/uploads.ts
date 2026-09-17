@@ -7,6 +7,9 @@ import { files } from '../db/schema'
 import type { Auth } from '../auth/session'
 import { makeJpegThumb } from '../lib/thumb'
 import type { Db } from '../db/client'
+import type { FileSigner } from '../lib/file-cap'
+import type { Idempotency } from '../lib/idempotency'
+import { activeShare } from './guides-shared'
 
 /** معرفات الملفات كلها nanoid — أي شيء خارج هذا النمط يُرفض قبل لمس القرص */
 const FILE_ID_RE = /^[A-Za-z0-9_-]{8,64}$/
@@ -53,6 +56,9 @@ export function registerUploadRoutes(
   db: Db,
   auth: Auth,
   filesDir: string,
+  signer: FileSigner,
+  /** DTOP-02: الرفع المعاد بالمفتاح نفسه يعيد الملف نفسه */
+  idempotency: Idempotency,
 ) {
   app.post(
     '/api/uploads',
@@ -75,37 +81,71 @@ export function registerUploadRoutes(
     if (mime === 'audio/webm' && buf.length > MAX_AUDIO_BYTES) {
       return reply.code(413).send({ errorAr: 'حجم الصوت يتجاوز 25 ميغابايت — منهِ التسجيل المقبل أقصر' })
     }
-    const id = nanoid(21)
-    fs.writeFileSync(path.join(filesDir, id), buf)
-    db.insert(files)
-      .values({ id, userId: user.id, mime, bytes: buf.length, createdAt: new Date().toISOString() })
-      .run()
-    // PERF-02: مصغّرة ≤30KB بعرض 320 تولد عند الرفع — لقاطات الامتداد JPEG دومًا؛
-    // PNG (أيقونات وأشباهها) بلا مصغّرة، والقوائم تسقط للأصل بلا كذب
-    let thumbFileId: string | undefined
-    if (mime === 'image/jpeg') {
-      const thumb = makeJpegThumb(buf)
-      if (thumb) {
-        thumbFileId = nanoid(21)
-        fs.writeFileSync(path.join(filesDir, thumbFileId), thumb)
-        db.insert(files)
-          .values({
-            id: thumbFileId,
-            userId: user.id,
-            mime: 'image/jpeg',
-            bytes: thumb.length,
-            createdAt: new Date().toISOString(),
-          })
-          .run()
+    // DTOP-02: الحجز بعد فحص الجسم وقبل أيّ كتابة — لا await بين الحجز وتثبيت الردّ.
+    // الإعادة تعيد الملف نفسه، والروابط تُوقَّع من جديد لا تُعاد منتهية من الذاكرة
+    const idem = idempotency.begin(req, user.id, 'uploads')
+    if (idem.kind === 'rejected') return reply.code(idem.status).send({ errorAr: idem.errorAr })
+    if (idem.kind === 'replay') {
+      const prev = idem.body as { fileId: string; thumbFileId?: string }
+      return {
+        fileId: prev.fileId,
+        thumbFileId: prev.thumbFileId,
+        fileUrl: signer.original(prev.fileId),
+        ...(prev.thumbFileId ? { thumbUrl: signer.original(prev.thumbFileId) } : {}),
       }
     }
-    return { fileId: id, thumbFileId }
+    const id = nanoid(21)
+    let thumbFileId: string | undefined
+    try {
+      fs.writeFileSync(path.join(filesDir, id), buf)
+      db.insert(files)
+        .values({ id, userId: user.id, mime, bytes: buf.length, createdAt: new Date().toISOString() })
+        .run()
+      // PERF-02: مصغّرة ≤30KB بعرض 320 تولد عند الرفع — لقاطات الامتداد JPEG دومًا؛
+      // PNG (أيقونات وأشباهها) بلا مصغّرة، والقوائم تسقط للأصل بلا كذب
+      if (mime === 'image/jpeg') {
+        const thumb = makeJpegThumb(buf)
+        if (thumb) {
+          thumbFileId = nanoid(21)
+          fs.writeFileSync(path.join(filesDir, thumbFileId), thumb)
+          db.insert(files)
+            .values({
+              id: thumbFileId,
+              userId: user.id,
+              mime: 'image/jpeg',
+              bytes: thumb.length,
+              createdAt: new Date().toISOString(),
+            })
+            .run()
+        }
+      }
+    } catch (err) {
+      if (idem.kind === 'fresh') idempotency.release(user.id, idem.key)
+      throw err
+    }
+    if (idem.kind === 'fresh') idempotency.remember(user.id, idem.key, 'uploads', 200, { fileId: id, thumbFileId })
+    // خصوصيّة ٢ب: الرافع يأخذ روابط موقَّعة فورًا — المعاينة قبل الحفظ لا تركّب رابطًا من معرّف
+    return {
+      fileId: id,
+      thumbFileId,
+      fileUrl: signer.original(id),
+      ...(thumbFileId ? { thumbUrl: signer.original(thumbFileId) } : {}),
+    }
     },
   )
 
   app.get('/files/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
     if (!FILE_ID_RE.test(id)) {
+      return reply.code(404).send({ errorAr: 'الملف غير موجود' })
+    }
+    // خصوصيّة ٢ب: لا بايت بلا قدرة أصدرها الخادم — والرفض 404 لا يفشي الوجود
+    const cap = signer.verify(id, req.query as { e?: string; s?: string; c?: string })
+    if (!cap.ok) {
+      return reply.code(404).send({ errorAr: 'الملف غير موجود' })
+    }
+    // نطاق المشاركة يُفحص حيًّا: السحب أو السلة يقطعان الصورة في اللحظة نفسها
+    if (cap.share && !activeShare(db, cap.share)) {
       return reply.code(404).send({ errorAr: 'الملف غير موجود' })
     }
     const row = db.select().from(files).where(eq(files.id, id)).get()
@@ -118,7 +158,8 @@ export function registerUploadRoutes(
     ) {
       return reply.code(404).send({ errorAr: 'الملف غير موجود' })
     }
-    reply.header('cache-control', 'public, max-age=31536000, immutable')
+    // خاصّ دائمًا: لا كاش مشترك يحفظ أصلًا — والمشاركة ساعة فقط كي يسري السحب على المتصفّح أيضًا
+    reply.header('cache-control', cap.share ? 'private, max-age=3600' : 'private, max-age=86400')
     // VOX-03: عنصر الصوت في العارض يطلب نطاقات للتمرير — نطاق واحد صالح → 206
     const size = fs.statSync(p).size
     reply.header('accept-ranges', 'bytes')

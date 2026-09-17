@@ -25,16 +25,16 @@ const post = (app: import('fastify').FastifyInstance, cookie: string, buf: Buffe
   })
 
 describe('رفع الصوت webm وخدمته', () => {
-  it('webm سليم → 200 → جلب عام بنوع audio/webm وبايتات مطابقة', async () => {
+  it('webm سليم → 200 → جلب برابطه الموقَّع بنوع audio/webm وبايتات مطابقة', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'vox-upload@dalili.sa')
     const audio = Buffer.concat([WEBM_MAGIC, Buffer.alloc(2_048)])
     const res = await post(app, cookie, audio, 'voice.webm', 'audio/webm')
     expect(res.statusCode).toBe(200)
     expect(res.json().thumbFileId).toBeUndefined() // لا مصغّرة للصوت أبدًا
-    const { fileId } = res.json() as { fileId: string }
+    const { fileUrl } = res.json() as { fileUrl: string }
 
-    const file = await app.inject({ method: 'GET', url: `/files/${fileId}` })
+    const file = await app.inject({ method: 'GET', url: fileUrl })
     expect(file.statusCode).toBe(200)
     expect(file.headers['content-type']).toBe('audio/webm')
     expect(Buffer.from(file.rawPayload).subarray(0, 4)).toEqual(WEBM_MAGIC.subarray(0, 4))
@@ -70,9 +70,9 @@ describe('رفع الصوت webm وخدمته', () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'vox-range@dalili.sa')
     const audio = Buffer.concat([WEBM_MAGIC, Buffer.alloc(1_000)])
-    const { fileId } = (await post(app, cookie, audio, 'voice.webm', 'audio/webm')).json() as { fileId: string }
+    const { fileUrl } = (await post(app, cookie, audio, 'voice.webm', 'audio/webm')).json() as { fileUrl: string }
 
-    const part = await app.inject({ method: 'GET', url: `/files/${fileId}`, headers: { range: 'bytes=0-99' } })
+    const part = await app.inject({ method: 'GET', url: fileUrl, headers: { range: 'bytes=0-99' } })
     expect(part.statusCode).toBe(206)
     expect(part.headers['content-range']).toBe(`bytes 0-99/${audio.length}`)
     expect(part.rawPayload.length).toBe(100)
@@ -82,15 +82,15 @@ describe('رفع الصوت webm وخدمته', () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'vox-range2@dalili.sa')
     const audio = Buffer.concat([WEBM_MAGIC, Buffer.alloc(500)])
-    const { fileId } = (await post(app, cookie, audio, 'voice.webm', 'audio/webm')).json() as { fileId: string }
-    const res = await app.inject({ method: 'GET', url: `/files/${fileId}`, headers: { range: 'bytes=99999-' } })
+    const { fileUrl } = (await post(app, cookie, audio, 'voice.webm', 'audio/webm')).json() as { fileUrl: string }
+    const res = await app.inject({ method: 'GET', url: fileUrl, headers: { range: 'bytes=99999-' } })
     expect(res.statusCode).toBe(200)
     expect(res.rawPayload.length).toBe(audio.length)
   })
 })
 
 describe('دليل بصوت — دورة كاملة', () => {
-  it('إنشاء دليل guide.audio → جلب خاص وعام يعيدانه كما هو', async () => {
+  it('إنشاء دليل guide.audio → جلب خاص وعام يعيدان بياناته كما هي، مع رابط موقَّع بنطاق كلٍّ منهما', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'vox-guide@dalili.sa')
     const guide = assembleGuide([
@@ -107,11 +107,19 @@ describe('دليل بصوت — دورة كاملة', () => {
     const id = (created.json() as { id: string }).id
 
     const got = await app.inject({ method: 'GET', url: `/api/guides/${id}`, headers: { cookie } })
-    expect((got.json().guide as { audio?: unknown }).audio).toEqual(audio)
+    // خصوصيّة ٢ب: الخادم يركّب fileUrl عند القراءة — العضو بتوقيع أصل (بلا s=)
+    expect((got.json().guide as { audio?: unknown }).audio).toEqual({
+      ...audio,
+      fileUrl: expect.stringMatching(/^\/files\/voxAudioFile000001\?e=\d+&c=[^&]+$/),
+    })
 
     const share = await app.inject({ method: 'POST', url: `/api/guides/${id}/share`, headers: { cookie } })
     const { token } = share.json() as { token: string }
     const pub = await app.inject({ method: 'GET', url: `/api/share/${token}` })
-    expect((pub.json().guide as { audio?: unknown }).audio).toEqual(audio)
+    // والضيف بتوقيع مقيَّد برمز المشاركة نفسه
+    expect((pub.json().guide as { audio?: unknown }).audio).toEqual({
+      ...audio,
+      fileUrl: expect.stringMatching(new RegExp(`^/files/voxAudioFile000001\\?e=\\d+&s=${token}&c=[^&]+$`)),
+    })
   })
 })

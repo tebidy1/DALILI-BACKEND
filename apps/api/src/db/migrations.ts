@@ -1,7 +1,6 @@
 import type Database from 'better-sqlite3'
 import { BOOTSTRAP_SQL } from './bootstrap'
 import { rebuildIndex } from '../search/index'
-import { primarySiteOf } from '@dalili/core'
 
 /**
  * OPS-03: ترحيلات مرقمة تُطبَّق مرة واحدة وتُسجَّل في _migrations —
@@ -24,6 +23,28 @@ function addColumn(sqlite: Database.Database, table: string, col: string, ddl: s
   if (!hasColumn(sqlite, table, col)) sqlite.prepare(`ALTER TABLE ${table} ADD COLUMN ${col} ${ddl}`).run()
 }
 
+/**
+ * نسخة v1 مجمَّدة من primarySiteOf — منسوخة حرفيًّا من packages/core/src/sites.ts
+ * بتاريخ 2026-09-15. **لا تُعدَّل ولا تُستبدل باستيراد.**
+ * السبب: الترحيلان 0008 و0009 سجلّ تاريخي؛ تعديل core لاحقًا (إعادة التسمية إلى
+ * primarySourceOf وتوسيعه للديسكتوب والكاميرا) كان سيغيّر ناتجهما أثرًا رجعيًّا
+ * على كل قاعدة تُنشأ من جديد.
+ */
+function frozenPrimarySiteOf(steps: Array<{ url?: string }>): string {
+  for (const step of steps) {
+    const raw = step.url?.trim()
+    if (!raw) continue
+    const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`
+    try {
+      const host = new URL(candidate).hostname.toLowerCase().replace(/^www\./, '')
+      if (host && (host.includes('.') || host === 'localhost' || host === '127.0.0.1')) return host
+    } catch {
+      // رابط تالف — المحاولة التالية
+    }
+  }
+  return ''
+}
+
 /** backfill الموقع من أول خطوة لها رابط — يستعمله 0008 و0009 (فخ: عطب برمجي لحظة 0008
  *  ابتلعه catch «البيانات التالفة» الواسع فمرّ الترحيل بلا ملء؛ 0009 هو الشفاء المضمون) */
 function backfillGuideSites(sqlite: Database.Database): void {
@@ -36,7 +57,7 @@ function backfillGuideSites(sqlite: Database.Database): void {
   for (const r of pending) {
     try {
       const g = JSON.parse(r.data) as { steps?: Array<{ url?: string }> }
-      const site = primarySiteOf(g.steps ?? [])
+      const site = frozenPrimarySiteOf(g.steps ?? [])
       if (site) update.run(site, r.id)
     } catch {
       // بيانات تالفة تبقى كما هي — لا تُسقط الترحيل
@@ -343,6 +364,61 @@ export function listMigrations(): Migration[] {
                opened_at     TEXT,
                done_at       TEXT,
                PRIMARY KEY (assignment_id, user_id)
+             )`,
+          )
+          .run()
+      },
+    },
+    {
+      // DTOP-02 (ترحيل 0018): عدم التكرار للرفع وإنشاء الدليل — مفتاح لكل مستخدم، يُكنس بعد ٧ أيام
+      id: '0018',
+      name: 'idempotency_keys',
+      up: (sqlite) => {
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS idempotency_keys (
+               user_id    TEXT NOT NULL,
+               key        TEXT NOT NULL,
+               route      TEXT NOT NULL,
+               status     INTEGER NOT NULL,
+               response   TEXT NOT NULL,
+               created_at TEXT NOT NULL,
+               PRIMARY KEY (user_id, key)
+             )`,
+          )
+          .run()
+        sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_idempotency_created ON idempotency_keys(created_at)').run()
+      },
+    },
+    {
+      // DTOP-03 (ترحيل 0019): اقتران الأجهزة — رموز Bearer ببصمة، ورموز ربط مؤقّتة
+      id: '0019',
+      name: 'device_auth',
+      up: (sqlite) => {
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS device_tokens (
+               id           TEXT PRIMARY KEY,
+               user_id      TEXT NOT NULL,
+               token_hash   TEXT NOT NULL UNIQUE,
+               device_name  TEXT NOT NULL,
+               created_at   TEXT NOT NULL,
+               last_used_at TEXT,
+               expires_at   TEXT NOT NULL
+             )`,
+          )
+          .run()
+        sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id)').run()
+        sqlite
+          .prepare(
+            `CREATE TABLE IF NOT EXISTS device_codes (
+               device_code_hash TEXT PRIMARY KEY,
+               user_code        TEXT NOT NULL UNIQUE,
+               device_name      TEXT NOT NULL,
+               status           TEXT NOT NULL,
+               user_id          TEXT,
+               created_at       TEXT NOT NULL,
+               expires_at       TEXT NOT NULL
              )`,
           )
           .run()

@@ -1,4 +1,4 @@
-import type { StepKind, StepTarget } from './guide'
+import { placeTitleOf, type StepKind, type StepSource, type StepTarget } from './guide'
 
 /** تنظيف نص مستمد من الصفحة: فراغات + قص */
 export function cleanText(s: string | undefined, max = 80): string | undefined {
@@ -19,6 +19,8 @@ export interface TitleInput {
   value?: string
   sensitive: boolean
   pageTitle?: string
+  /** DTOP-01: مصدر الخطوة — الديسكتوب يعنون بالنافذة */
+  source?: StepSource
 }
 
 /** مولّد العناوين العربي القاعدي — حتمي، بلا شبكة، قابل للاختبار */
@@ -52,7 +54,8 @@ export function stepTitle(step: TitleInput): string {
       return t ? `${verb} «${t}»` : `${verb} الخيار`
     }
     case 'navigate': {
-      const p = cleanText(step.pageTitle, 60)
+      const p = cleanText(placeTitleOf(step), 60)
+      if (step.source?.kind === 'desktop') return p ? `انتقل إلى نافذة «${p}»` : 'انتقل إلى نافذة أخرى'
       return p ? `انتقل إلى صفحة «${p}»` : 'انتقل إلى صفحة جديدة'
     }
     case 'keypress': {

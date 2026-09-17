@@ -31,7 +31,7 @@ describe('OPS-04: نسخ احتياطي واستعادة', () => {
     fd.append('file', new Blob([new Uint8Array(jpg)], { type: 'image/jpeg' }), 'shot.jpg')
     const up = await app.inject({ method: 'POST', url: '/api/uploads', headers: { cookie }, payload: fd })
     expect(up.statusCode).toBe(200)
-    const { fileId, thumbFileId } = up.json() as { fileId: string; thumbFileId: string }
+    const { fileId, thumbFileId, fileUrl } = up.json() as { fileId: string; thumbFileId: string; fileUrl: string }
 
     const now = new Date().toISOString()
     const create = await app.inject({
@@ -110,7 +110,8 @@ describe('OPS-04: نسخ احتياطي واستعادة', () => {
     expect(search.statusCode).toBe(200)
     expect((search.json().hits as unknown[]).length).toBeGreaterThan(0)
 
-    const file = await app2.inject({ method: 'GET', url: `/files/${fileId}` })
+    // نفس السرّ بعد الاستعادة ⇒ الرابط الموقَّع قبل النسخ يبقى صالحًا
+    const file = await app2.inject({ method: 'GET', url: fileUrl })
     expect(file.statusCode).toBe(200)
     expect(file.headers['content-type']).toBe('image/jpeg')
 

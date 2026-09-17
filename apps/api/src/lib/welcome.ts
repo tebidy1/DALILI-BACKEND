@@ -3,8 +3,9 @@ import type Database from 'better-sqlite3'
 import type { Db } from '../db/client'
 import { guides } from '../db/schema'
 import { indexGuide } from '../search/index'
-import { primarySiteOf } from '@dalili/core'
+import { primarySourceOf } from '@dalili/core'
 import type { GuideDto } from '@dalili/shared'
+import { toV2 } from './guide-v2'
 
 /**
  * UX-05: الدليل الترحيبي — أول تسجيل دخول يجد دليلًا يشرح المنتج **بنفس المنتج**:
@@ -48,7 +49,8 @@ export function seedWelcomeGuide(
   sqlite: Database.Database,
   { workspaceId, userId, nowIso }: { workspaceId: string; userId: string; nowIso: string },
 ): string {
-  const guide = buildWelcomeGuide(nanoid(12), nowIso)
+  // DTOP-01: الكتابة v2 دائمًا — حتى دليل الترحيب
+  const guide = toV2(buildWelcomeGuide(nanoid(12), nowIso))
   const tags = ['ترحيب']
   sqlite.transaction(() => {
     db.insert(guides)
@@ -64,7 +66,7 @@ export function seedWelcomeGuide(
         updatedAt: nowIso,
         tags: JSON.stringify(tags),
         // الموقع مشتق كأي دليل — وإلا بقي الترحيبي الجديد بلا موقع بعد ما شفا 0009 القدامى
-        site: primarySiteOf(guide.steps),
+        site: primarySourceOf(guide.steps),
       })
       .run()
     indexGuide(sqlite, guide, tags)

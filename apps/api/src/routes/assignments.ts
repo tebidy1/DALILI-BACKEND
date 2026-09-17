@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import type { FastifyInstance } from 'fastify'
 import { zCreateAssignment } from '@dalili/shared'
 import { assignments, assignmentProgress, guides, teams, users, workspaceMembers } from '../db/schema'
-import { memberRole } from '../ws/roles'
+import { assignmentTargetsMe, memberRole, memberTeamId } from '../ws/roles'
 import type { Auth } from '../auth/session'
 import type { Db } from '../db/client'
 
@@ -32,12 +32,6 @@ function resolveTargetMembers(db: Db, wsId: string, kind: string, targetId: stri
 
 export function registerAssignmentRoutes(app: FastifyInstance, db: Db, auth: Auth) {
   const wsOf = (userId: string, email: string) => auth.ensurePersonalWorkspace(userId, email).id
-  const myTeamId = (wsId: string, userId: string) =>
-    db
-      .select({ teamId: workspaceMembers.teamId })
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, userId)))
-      .get()?.teamId ?? null
 
   app.post('/api/guides/:id/assign', { preHandler: auth.requireAuth }, async (req, reply) => {
     const user = auth.readUser(req)!
@@ -100,12 +94,8 @@ export function registerAssignmentRoutes(app: FastifyInstance, db: Db, auth: Aut
   app.get('/api/assigned', { preHandler: auth.requireAuth }, async (req) => {
     const user = auth.readUser(req)!
     const wsId = wsOf(user.id, user.email)
-    const myTeam = myTeamId(wsId, user.id) ?? '__none__'
-    const targetMatch = sql`(
-      (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${user.id})
-      OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
-      OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${wsId})
-    )`
+    const myTeam = memberTeamId(db, wsId, user.id) ?? '__none__'
+    const targetMatch = assignmentTargetsMe(user.id, myTeam, wsId)
     const rows = db
       .select({
         assignmentId: assignments.id,
@@ -157,7 +147,7 @@ export function registerAssignmentRoutes(app: FastifyInstance, db: Db, auth: Aut
       .get()
     if (!a) return reply.code(404).send({ errorAr: 'تعذّر تحديث الحالة — الإسناد لم يعد قائمًا' })
 
-    const myTeam = myTeamId(wsId, user.id) ?? '__none__'
+    const myTeam = memberTeamId(db, wsId, user.id) ?? '__none__'
     const targeted =
       (a.targetKind === 'user' && a.targetId === user.id) ||
       (a.targetKind === 'team' && a.targetId === myTeam) ||
@@ -176,7 +166,9 @@ export function registerAssignmentRoutes(app: FastifyInstance, db: Db, auth: Aut
         .values({ assignmentId, userId: user.id, openedAt: now, doneAt: body.done === true ? now : null })
         .run()
     } else {
-      const doneAt = body.done === undefined ? existing.doneAt : body.done ? existing.doneAt ?? now : null
+      let doneAt = existing.doneAt
+      if (body.done === true) doneAt = existing.doneAt ?? now
+      else if (body.done === false) doneAt = null
       db.update(assignmentProgress)
         .set({ openedAt: existing.openedAt ?? now, doneAt })
         .where(and(eq(assignmentProgress.assignmentId, assignmentId), eq(assignmentProgress.userId, user.id)))

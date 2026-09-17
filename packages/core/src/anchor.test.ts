@@ -3,6 +3,7 @@ import {
   anchorNormText,
   anchorToSelector,
   buildAnchorChain,
+  cssAnchorFinder,
   isEphemeralId,
   resolveAnchor,
   TEXT_ANCHOR_SEL,
@@ -10,12 +11,12 @@ import {
   type AnchorDom,
 } from './anchor'
 
-/** DOM زائف للفحص: خريطة محدِّد → عناصر، ودالة نص لكل عنصر */
+/** DOM زائف للفحص: خريطة محدِّد → عناصر، ودالة نص لكل عنصر — عبر محوّل CSS نفسه الذي يستعمله الامتداد */
 function fakeDom(bySel: Record<string, string[]>, texts: Record<string, string> = {}): AnchorDom<string> {
-  return {
-    queryAll: (sel) => bySel[sel] ?? [],
-    textOf: (el) => texts[el] ?? el,
-  }
+  return cssAnchorFinder(
+    (sel) => bySel[sel] ?? [],
+    (el) => texts[el] ?? el,
+  )
 }
 
 describe('buildAnchorChain — بطاقة تعريف الزر (AUTO-01)', () => {
@@ -186,5 +187,58 @@ describe('resolveAnchor — أول مرشح فريد يفوز (GM-01 يقف عل
     ]
     const dom = fakeDom({ '[id="_r_rr_"] > div:nth-of-type(2)': ['wrong'], '[aria-label="إلغاء"]': ['right'] })
     expect(resolveAnchor(chain, dom)).toEqual({ el: 'right', via: 1 })
+  })
+})
+
+describe('AnchorDom.find — منفذ بلا CSS (تمهيد محوّل UIA لتطبيق الديسكتوب)', () => {
+  it('resolveAnchor يمرّر المرشّح نفسه للمحوّل ولا يطلب محدِّد CSS أبدًا', () => {
+    const seen: unknown[] = []
+    const dom: AnchorDom<string> = {
+      find: (c) => {
+        seen.push(c)
+        return c.k === 'automationId' && c.v === 'btnSave' ? ['uia-save'] : []
+      },
+    }
+    expect(resolveAnchor([{ k: 'automationId', v: 'btnSave' }], dom)).toEqual({ el: 'uia-save', via: 0 })
+    expect(seen).toEqual([{ k: 'automationId', v: 'btnSave' }])
+  })
+
+  it('مرشّح controlType الملتبس يُتجاوز إلى الفريد التالي', () => {
+    const dom: AnchorDom<string> = {
+      find: (c) => (c.k === 'controlType' ? ['b1', 'b2'] : c.k === 'text' && c.v === 'موافق' ? ['ok'] : []),
+    }
+    const chain: AnchorChain = [
+      { k: 'controlType', v: 'Button' },
+      { k: 'text', v: 'موافق' },
+    ]
+    expect(resolveAnchor(chain, dom)).toEqual({ el: 'ok', via: 1 })
+  })
+
+  it('المرشّحات المتطايرة تُتجاوز قبل سؤال المحوّل أصلًا', () => {
+    const seen: string[] = []
+    const dom: AnchorDom<string> = { find: (c) => (seen.push(c.k), ['hit']) }
+    resolveAnchor([{ k: 'id', v: '_r_6_' }, { k: 'path', v: '[id="_r_rr_"] > a' }, { k: 'aria', v: 'حفظ' }], dom)
+    expect(seen).toEqual(['aria'])
+  })
+
+  it('cssAnchorFinder لا يطابق مرشّحات UIA على الويب — لا تخمين', () => {
+    const f = cssAnchorFinder(() => ['any'], (el) => el)
+    expect(f.find({ k: 'automationId', v: 'x' })).toEqual([])
+    expect(f.find({ k: 'controlType', v: 'Button' })).toEqual([])
+    expect(anchorToSelector({ k: 'automationId', v: 'x' })).toBeNull()
+    expect(anchorToSelector({ k: 'controlType', v: 'Button' })).toBeNull()
+  })
+
+  it('buildAnchorChain: automationId بعد id وcontrolType قبل المسار — والويب بلا الحقلين لا يتغيّر', () => {
+    const chain = buildAnchorChain({
+      tag: 'Button',
+      automationId: 'btnSave',
+      controlType: 'Button',
+      text: 'حفظ',
+      path: 'Window/Pane[2]/Button[1]',
+    })
+    expect(chain.map((c) => c.k)).toEqual(['automationId', 'text', 'controlType', 'path'])
+    const web = buildAnchorChain({ tag: 'button', id: 'save', text: 'حفظ' })
+    expect(web.map((c) => c.k)).toEqual(['id', 'text'])
   })
 })

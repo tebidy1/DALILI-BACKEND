@@ -1,0 +1,692 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`لقطة عقد الدليل (zGuide) > مخطط JSON مستقر — كل تغيير مراجعة واعية لا انزياح صامت 1`] = `
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": false,
+  "properties": {
+    "audio": {
+      "additionalProperties": false,
+      "properties": {
+        "durationMs": {
+          "minimum": 0,
+          "type": "integer",
+        },
+        "fileId": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "fileUrl": {
+          "type": "string",
+        },
+        "pauses": {
+          "items": {
+            "items": [
+              {
+                "type": "number",
+              },
+              {
+                "type": "number",
+              },
+            ],
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array",
+          },
+          "type": "array",
+        },
+        "startedAt": {
+          "type": "number",
+        },
+      },
+      "required": [
+        "fileId",
+        "durationMs",
+        "startedAt",
+      ],
+      "type": "object",
+    },
+    "createdAt": {
+      "type": "string",
+    },
+    "description": {
+      "maxLength": 2000,
+      "type": "string",
+    },
+    "dir": {
+      "const": "rtl",
+      "type": "string",
+    },
+    "id": {
+      "type": "string",
+    },
+    "kind": {
+      "enum": [
+        "guide",
+        "booklet",
+      ],
+      "type": "string",
+    },
+    "locale": {
+      "const": "ar",
+      "type": "string",
+    },
+    "schemaVersion": {
+      "enum": [
+        1,
+        2,
+      ],
+      "type": "number",
+    },
+    "steps": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "alt": {
+            "maxLength": 300,
+            "type": "string",
+          },
+          "block": {
+            "enum": [
+              "tip",
+              "alert",
+              "header",
+              "text",
+              "embed",
+              "divider",
+              "link",
+              "image",
+              "video",
+            ],
+            "type": "string",
+          },
+          "embed": {
+            "additionalProperties": false,
+            "properties": {
+              "expanded": {
+                "type": "boolean",
+              },
+              "guideId": {
+                "minLength": 1,
+                "type": "string",
+              },
+            },
+            "required": [
+              "guideId",
+              "expanded",
+            ],
+            "type": "object",
+          },
+          "id": {
+            "type": "string",
+          },
+          "kind": {
+            "enum": [
+              "click",
+              "input",
+              "select",
+              "toggle",
+              "navigate",
+              "keypress",
+            ],
+            "type": "string",
+          },
+          "note": {
+            "type": "string",
+          },
+          "pageTitle": {
+            "type": "string",
+          },
+          "rich": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "para": {
+                  "enum": [
+                    "p",
+                    "h2",
+                    "h3",
+                    "ul",
+                    "ol",
+                  ],
+                  "type": "string",
+                },
+                "runs": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "b": {
+                        "type": "boolean",
+                      },
+                      "href": {
+                        "format": "uri",
+                        "type": "string",
+                      },
+                      "i": {
+                        "type": "boolean",
+                      },
+                      "text": {
+                        "maxLength": 5000,
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "text",
+                    ],
+                    "type": "object",
+                  },
+                  "maxItems": 200,
+                  "type": "array",
+                },
+              },
+              "required": [
+                "para",
+                "runs",
+              ],
+              "type": "object",
+            },
+            "maxItems": 200,
+            "type": "array",
+          },
+          "screenshot": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "annotations": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "color": {
+                          "maxLength": 32,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                        "from": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "x": {
+                              "type": "number",
+                            },
+                            "y": {
+                              "type": "number",
+                            },
+                          },
+                          "required": [
+                            "x",
+                            "y",
+                          ],
+                          "type": "object",
+                        },
+                        "id": {
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                        "n": {
+                          "type": "integer",
+                        },
+                        "path": {
+                          "items": {
+                            "$ref": "#/properties/steps/items/properties/screenshot/anyOf/0/properties/annotations/items/properties/from",
+                          },
+                          "maxItems": 2000,
+                          "type": "array",
+                        },
+                        "rect": {
+                          "$ref": "#/properties/steps/items/properties/screenshot/anyOf/0/properties/blurRects/items",
+                        },
+                        "text": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                        "to": {
+                          "$ref": "#/properties/steps/items/properties/screenshot/anyOf/0/properties/annotations/items/properties/from",
+                        },
+                        "type": {
+                          "enum": [
+                            "rect",
+                            "ellipse",
+                            "oval",
+                            "arrow",
+                            "curved-arrow",
+                            "number",
+                            "text",
+                            "draw",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "color",
+                      ],
+                      "type": "object",
+                    },
+                    "maxItems": 50,
+                    "type": "array",
+                  },
+                  "autoBlurred": {
+                    "type": "boolean",
+                  },
+                  "blurRects": {
+                    "default": [],
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "h": {
+                          "type": "number",
+                        },
+                        "w": {
+                          "type": "number",
+                        },
+                        "x": {
+                          "type": "number",
+                        },
+                        "y": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "w",
+                        "h",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "crop": {
+                    "$ref": "#/properties/steps/items/properties/screenshot/anyOf/0/properties/blurRects/items",
+                  },
+                  "fileId": {
+                    "minLength": 1,
+                    "type": "string",
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                  },
+                  "mark": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "color": {
+                        "enum": [
+                          "#ea580c",
+                          "#e11d48",
+                          "#2563eb",
+                          "#16a34a",
+                          "#2b2a26",
+                        ],
+                        "type": "string",
+                      },
+                      "rect": {
+                        "$ref": "#/properties/steps/items/properties/screenshot/anyOf/0/properties/blurRects/items",
+                      },
+                      "shape": {
+                        "enum": [
+                          "rect",
+                          "ellipse",
+                        ],
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "rect",
+                      "color",
+                    ],
+                    "type": "object",
+                  },
+                  "thumbFileId": {
+                    "type": "string",
+                  },
+                  "thumbUrl": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "fileId",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "missing": {
+                    "const": true,
+                    "type": "boolean",
+                  },
+                  "reason": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "missing",
+                ],
+                "type": "object",
+              },
+            ],
+          },
+          "sensitive": {
+            "type": "boolean",
+          },
+          "source": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "web",
+                    "type": "string",
+                  },
+                  "pageTitle": {
+                    "type": "string",
+                  },
+                  "url": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "kind",
+                  "url",
+                  "pageTitle",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "appId": {
+                    "type": "string",
+                  },
+                  "ieMode": {
+                    "type": "boolean",
+                  },
+                  "kind": {
+                    "const": "desktop",
+                    "type": "string",
+                  },
+                  "processName": {
+                    "type": "string",
+                  },
+                  "uiaFramework": {
+                    "type": "string",
+                  },
+                  "url": {
+                    "type": "string",
+                  },
+                  "windowTitle": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "kind",
+                  "processName",
+                  "windowTitle",
+                  "appId",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "deviceModel": {
+                    "type": "string",
+                  },
+                  "kind": {
+                    "const": "camera",
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "kind",
+                ],
+                "type": "object",
+              },
+            ],
+          },
+          "target": {
+            "additionalProperties": false,
+            "properties": {
+              "anchor": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "id",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "testid",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "aria",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "name",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "text",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 80,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "path",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 600,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "automationId",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "k": {
+                          "const": "controlType",
+                          "type": "string",
+                        },
+                        "v": {
+                          "maxLength": 60,
+                          "minLength": 1,
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "k",
+                        "v",
+                      ],
+                      "type": "object",
+                    },
+                  ],
+                },
+                "maxItems": 6,
+                "type": "array",
+              },
+              "label": {
+                "type": "string",
+              },
+              "role": {
+                "type": "string",
+              },
+              "text": {
+                "type": "string",
+              },
+            },
+            "type": "object",
+          },
+          "title": {
+            "type": "string",
+          },
+          "ts": {
+            "type": "number",
+          },
+          "url": {
+            "type": "string",
+          },
+          "value": {
+            "type": "string",
+          },
+          "voice": {
+            "additionalProperties": false,
+            "properties": {
+              "durationMs": {
+                "maximum": 60000,
+                "minimum": 1,
+                "type": "integer",
+              },
+              "fileId": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "fileUrl": {
+                "type": "string",
+              },
+              "pending": {
+                "type": "boolean",
+              },
+            },
+            "required": [
+              "durationMs",
+            ],
+            "type": "object",
+          },
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "target",
+          "sensitive",
+          "ts",
+        ],
+        "type": "object",
+      },
+      "type": "array",
+    },
+    "title": {
+      "type": "string",
+    },
+    "updatedAt": {
+      "type": "string",
+    },
+  },
+  "required": [
+    "id",
+    "schemaVersion",
+    "title",
+    "locale",
+    "dir",
+    "createdAt",
+    "updatedAt",
+    "steps",
+  ],
+  "type": "object",
+}
+`;

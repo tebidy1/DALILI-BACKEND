@@ -69,7 +69,7 @@ export function toPrintableHtml(guide: Guide, urlFor?: (step: Step) => string): 
         .join('')
       return `<section class="step"><h2>خطوة ${nums[i]}: ${escapeHtml(s.title)}</h2>${
         s.note ? `<p class="note">${escapeHtml(s.note)}</p>` : ''
-      }${img}${texts}${s.url ? `<p class="page">${escapeHtml(s.pageTitle)}</p>` : ''}</section>`
+      }${img}${texts}${s.url ? `<p class="page">${escapeHtml(s.pageTitle ?? '')}</p>` : ''}</section>`
     })
     .join('\n')
   return `<!doctype html>

@@ -11,8 +11,13 @@ import { mergeVoiceTranscript, segmentTranscript, stepAudioMs } from '@dalili/co
 import { embedGuideSafe } from '../embeddings/store'
 import type { EmbeddingProvider } from '../embeddings/provider'
 import { parseTags } from './guides-shared'
+import { parseStoredGuide } from '../lib/guide-v2'
 import type { SttProvider } from '../stt/provider'
 import type { Db } from '../db/client'
+
+/** SEC: معرّف الملف كما يصدره الخادم (nanoid) — الصيغة الصارمة تُرفض قبل لمس القرص،
+ *  فلا يمرّر مُدخل JSON مسارًا إلى قراءة الملفات مهما ضُبطت الحواجز بعدها */
+const SERVER_FILE_ID = /^[A-Za-z0-9_-]{8,64}$/
 
 /**
  * VOX-04/05: تفريغ صوت الدليل لكل خطوة — بلا apply يعيد **مقترحات** (زر المحرر)،
@@ -42,12 +47,15 @@ export function registerTranscribeRoute(
     if (!row) {
       return reply.code(404).send({ errorAr: 'الدليل غير موجود' })
     }
-    const guide = JSON.parse(row.data) as GuideDto
+    const guide = parseStoredGuide(row.data)
     if (!guide.audio) {
       return reply.code(400).send({ errorAr: 'لا صوت في هذا الدليل — لا شيء لتفريغه' })
     }
     if (!stt) {
       return reply.code(503).send({ errorAr: 'خدمة التفريغ غير مضبوطة — أضِف GROQ_API_KEY في إعداد الخادم' })
+    }
+    if (!SERVER_FILE_ID.test(guide.audio.fileId)) {
+      return reply.code(400).send({ errorAr: 'معرّف الصوت غير صالح' })
     }
     const audioPath = path.join(filesDir, path.basename(guide.audio.fileId))
     if (!audioPath.startsWith(filesDir + path.sep) || !fs.existsSync(audioPath)) {
@@ -108,7 +116,7 @@ export function registerTranscribeRoute(
     if (!stt) {
       return reply.code(503).send({ errorAr: 'خدمة التفريغ غير مضبوطة — أضِف GROQ_API_KEY في إعداد الخادم' })
     }
-    const guide = JSON.parse(row.data) as GuideDto
+    const guide = parseStoredGuide(row.data)
     if (!guide.steps.some((s) => s.voice)) return { results: [] }
     const results: Array<{ stepId: string; ok: boolean; errorAr?: string }> = []
     let processed = 0
@@ -123,6 +131,10 @@ export function registerTranscribeRoute(
       // معالج سابقًا (pending=false) — تجاوز صامت كي لا يُكرّر الإلحاق
       if (voice.pending === false) {
         results.push({ stepId: step.id, ok: true })
+        continue
+      }
+      if (!SERVER_FILE_ID.test(voice.fileId)) {
+        results.push({ stepId: step.id, ok: false, errorAr: 'معرّف التعليق الصوتي غير صالح' })
         continue
       }
       const audioPath = path.join(filesDir, path.basename(voice.fileId))

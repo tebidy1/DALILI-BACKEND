@@ -19,7 +19,7 @@ function testJpeg(w = 640, h = 480): Buffer {
 
 /** PERF-02: مصغّرة ≤30KB بعرض 320 تُولَّد عند الرفع وتُخدَّم من /files */
 describe('المصغّرات (PERF-02)', () => {
-  it('رفع JPEG يولّد مصغّرة: موجودة، ≤30KB، عرضها 320، وتُقدَّم بلا مصادقة', async () => {
+  it('رفع JPEG يولّد مصغّرة: موجودة، ≤30KB، عرضها 320، وتُقدَّم برابطها الموقَّع', async () => {
     const { app } = await buildTestApp()
     const { cookie } = await registerUser(app, 'thumb1@dalili.sa')
 
@@ -27,11 +27,11 @@ describe('المصغّرات (PERF-02)', () => {
     fd.append('file', new Blob([new Uint8Array(testJpeg())], { type: 'image/jpeg' }), 'shot.jpg')
     const res = await app.inject({ method: 'POST', url: '/api/uploads', headers: { cookie }, payload: fd })
     expect(res.statusCode).toBe(200)
-    const { fileId, thumbFileId } = res.json() as { fileId: string; thumbFileId?: string }
+    const { fileId, thumbFileId, thumbUrl } = res.json() as { fileId: string; thumbFileId?: string; thumbUrl?: string }
     expect(fileId).toBeTruthy()
     expect(thumbFileId).toBeTruthy()
 
-    const thumb = await app.inject({ method: 'GET', url: `/files/${thumbFileId}` })
+    const thumb = await app.inject({ method: 'GET', url: thumbUrl! })
     expect(thumb.statusCode).toBe(200)
     expect(thumb.headers['content-type']).toBe('image/jpeg')
     const bytes = (thumb.rawPayload as Buffer).length
@@ -47,8 +47,8 @@ describe('المصغّرات (PERF-02)', () => {
     const fd = new FormData()
     fd.append('file', new Blob([new Uint8Array(testJpeg())], { type: 'image/jpeg' }), 'shot.jpg')
     const up = await app.inject({ method: 'POST', url: '/api/uploads', headers: { cookie }, payload: fd })
-    const { fileId } = up.json() as { fileId: string }
-    const orig = await app.inject({ method: 'GET', url: `/files/${fileId}` })
+    const { fileUrl } = up.json() as { fileUrl: string }
+    const orig = await app.inject({ method: 'GET', url: fileUrl })
     const decoded = jpeg.decode(orig.rawPayload as Buffer, { maxMemoryUsageInMB: 1024 })
     expect(decoded.width).toBe(640)
   })

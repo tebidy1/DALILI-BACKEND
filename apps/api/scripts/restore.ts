@@ -3,12 +3,13 @@
  * تشغيل:  tsx scripts/restore.ts <مسار-مجلد-النسخة>
  * ⚠️ أوقف الخدمة أولًا:  sudo systemctl stop dalili-api
  */
+import fs from 'node:fs'
 import path from 'node:path'
 import { loadEnv } from '../src/env'
 import { restoreBackup } from '../src/lib/backup'
 
-const backupDir = process.argv[2]
-if (!backupDir) {
+const requested = process.argv[2]
+if (!requested) {
   console.error('الاستخدام: tsx scripts/restore.ts <مسار-مجلد-النسخة>')
   console.error('⚠️ أوقف الخدمة قبل الاستعادة: sudo systemctl stop dalili-api')
   process.exit(1)
@@ -20,5 +21,12 @@ if (env.dataDir === ':memory:') {
   process.exit(1)
 }
 
-restoreBackup({ backupDir: path.resolve(backupDir), dataDir: env.dataDir })
+// SEC: المسار يُحلّ مطلقًا ويُفحص كنسخة صالحة قبل أي كتابة — لا مجلد غريب ولا نسخة ناقصة
+const backupDir = path.resolve(requested)
+if (!fs.existsSync(path.join(backupDir, 'dalili.db'))) {
+  console.error(`المجلد ${backupDir} لا يحوي dalili.db — ليست نسخة صالحة، توقّفت قبل أي كتابة`)
+  process.exit(1)
+}
+
+restoreBackup({ backupDir, dataDir: env.dataDir })
 console.log(`استُعيدت النسخة ${backupDir} إلى ${env.dataDir} — أعد تشغيل الخدمة الآن`)

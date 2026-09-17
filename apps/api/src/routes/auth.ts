@@ -61,7 +61,9 @@ export function registerAuthRoutes(app: FastifyInstance, db: Db, auth: Auth, sql
   })
 
   app.get('/api/auth/me', { preHandler: auth.requireAuth }, async (req) => {
-    return auth.readUser(req)
+    // DTOP-03: الشكل نفسه للكوكي ولرمز الجهاز — deviceId داخليّ لا يُعاد
+    const user = auth.readUser(req)!
+    return { id: user.id, email: user.email }
   })
 
   // مزامنة الثيم (2026-09-06): الاختيار لكل مستخدم — الموقع والامتداد يقرآنه من overview

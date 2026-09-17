@@ -34,6 +34,8 @@ import type {
   AssignedItemDto,
   AssignmentBoardDto,
   AssignTargetDto,
+  DeviceDto,
+  DevicePendingDto,
 } from './contract'
 
 export class DaliliApiError extends Error {
@@ -103,10 +105,10 @@ export class DaliliClient {
     }
   }
 
-  async uploadBlob(blob: Blob, filename = 'shot.jpg'): Promise<{ fileId: string; thumbFileId?: string }> {
+  async uploadBlob(blob: Blob, filename = 'shot.jpg'): Promise<{ fileId: string; thumbFileId?: string; fileUrl: string; thumbUrl?: string }> {
     const fd = new FormData()
     fd.append('file', blob, filename)
-    return this.req<{ fileId: string; thumbFileId?: string }>('/api/uploads', { body: fd })
+    return this.req<{ fileId: string; thumbFileId?: string; fileUrl: string; thumbUrl?: string }>('/api/uploads', { body: fd })
   }
 
   listGuides(query: Partial<ListGuidesQuery> = {}, signal?: AbortSignal) {
@@ -142,8 +144,8 @@ export class DaliliClient {
     return this.req<{ created: number }>(`/api/guides/${id}/assign`, { json: { targets, note } })
   }
 
-  async deleteAssignment(assignmentId: string) {
-    await this.req<void>(`/api/assignments/${assignmentId}`, { method: 'DELETE' })
+  deleteAssignment(assignmentId: string) {
+    return this.req<void>(`/api/assignments/${assignmentId}`, { method: 'DELETE' })
   }
 
   /** ASG: «أُسند إليّ» — يحلّ (أنا/فريقي/المساحة) مع حالتي */
@@ -383,5 +385,23 @@ export class DaliliClient {
     return this.req<{ bookmarked: boolean }>(`/api/guides/${encodeURIComponent(guideId)}/bookmark`, {
       method: 'POST',
     })
+  }
+
+  // ——— DTOP-03: ربط الأجهزة (المتصفّح يوافق ويدير؛ الديسكتوب يطلب الرمز من Rust مباشرة) ——
+
+  devicePending(code: string, signal?: AbortSignal) {
+    return this.req<DevicePendingDto>(`/api/device/pending?code=${encodeURIComponent(code)}`, { signal })
+  }
+
+  deviceApprove(userCode: string, approve: boolean) {
+    return this.req<{ ok: true }>('/api/device/approve', { json: { userCode, approve } })
+  }
+
+  listDevices(signal?: AbortSignal) {
+    return this.req<DeviceDto[]>('/api/devices', { signal })
+  }
+
+  async revokeDevice(id: string) {
+    await this.req<void>(`/api/devices/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 }

@@ -68,8 +68,10 @@ async function transcribe(key: string, filePath: string): Promise<string> {
   return (json.text ?? '').trim()
 }
 
-const dir = process.argv[2]
-if (!dir || !fs.existsSync(dir)) {
+// SEC: مجلد العينات يُحلّ مطلقًا ويجب أن يكون مجلدًا حقيقيًا — لا قراءة من مسار مرتجل
+const requested = process.argv[2]
+const dir = requested ? path.resolve(requested) : ''
+if (!dir || !fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
   console.error('الاستخدام: pnpm --filter @dalili/api wer-gate <مجلد-الأزواج>')
   process.exit(1)
 }

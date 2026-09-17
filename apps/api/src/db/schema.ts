@@ -166,3 +166,37 @@ export const assignmentProgress = sqliteTable('assignment_progress', {
   openedAt: text('opened_at'),
   doneAt: text('done_at'),
 })
+
+/** DTOP-02 (ترحيل 0018): مفاتيح عدم التكرار — إعادة الطلب نفسه تعيد الردّ نفسه لا نسخة ثانية.
+ *  المفتاح الأساسي المركّب (user_id, key) في الـDDL. status = 0 ⇐ محجوز قيد التنفيذ بلا ردّ بعد */
+export const idempotencyKeys = sqliteTable('idempotency_keys', {
+  userId: text('user_id').notNull(),
+  key: text('key').notNull(),
+  route: text('route').notNull(),
+  status: integer('status').notNull(),
+  response: text('response').notNull(),
+  createdAt: text('created_at').notNull(),
+})
+
+/** DTOP-03 (ترحيل 0019): رموز الأجهزة — Bearer بجانب الكوكي. نخزّن بصمة sha256 لا الرمز */
+export const deviceTokens = sqliteTable('device_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  deviceName: text('device_name').notNull(),
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at'),
+  expiresAt: text('expires_at').notNull(),
+})
+
+/** DTOP-03 (ترحيل 0019): رموز الاقتران المؤقّتة (١٠ دقائق) — تُستهلك مرّة واحدة */
+export const deviceCodes = sqliteTable('device_codes', {
+  deviceCodeHash: text('device_code_hash').primaryKey(),
+  userCode: text('user_code').notNull().unique(),
+  deviceName: text('device_name').notNull(),
+  /** 'pending' | 'approved' | 'denied' */
+  status: text('status').notNull(),
+  userId: text('user_id'),
+  createdAt: text('created_at').notNull(),
+  expiresAt: text('expires_at').notNull(),
+})

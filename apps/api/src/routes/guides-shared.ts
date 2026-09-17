@@ -1,10 +1,11 @@
 import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm'
 import type { GuideDto, GuideSummaryDto, ListGuidesDto, ListGuidesQuery } from '@dalili/shared'
 import type { Auth } from '../auth/session'
-import { assignments, guides, shares, users, workspaceMembers } from '../db/schema'
-import { memberRole } from '../ws/roles'
+import { assignments, guides, shares, users } from '../db/schema'
+import { assignmentTargetsMe, memberRole, memberTeamId } from '../ws/roles'
 import { normalizeFa } from '@dalili/core'
 import type { Db } from '../db/client'
+import type { FileSigner } from '../lib/file-cap'
 
 export function parseTags(raw: string): string[] {
   try {
@@ -50,7 +51,7 @@ export function notViewerBlock(db: Db, wsId: string, userId: string, nounAr: str
  * دوال الأدلة المشتركة بين مسارات الأدلة ونظرة المكتبة — مصدر واحد للنطاق المساحي
  * والملخص وأعمدة القائمة، فلا تفرّق قائمة عن عدّاد (ب7: مصدر واحد للحقيقة).
  */
-export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
+export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string, signer: FileSigner) {
   /** يقرأ الدليل إن كان مملوكًا للمستخدم فعلًا — 404 للغير (عزل لا يكشف الوجود) */
   function ownedGuideOr404(userId: string, id: string) {
     return ownedGuideRow(db, userId, id)
@@ -67,12 +68,7 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
    */
   /** ASG: هل يملك هذا العضو إسنادًا حيًّا يمنحه قراءة هذا الدليل؟ (أنا/فريقي/مساحتي) */
   function assignmentGrantsRead(userId: string, wsId: string, guideId: string): boolean {
-    const me = db
-      .select({ teamId: workspaceMembers.teamId })
-      .from(workspaceMembers)
-      .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, userId)))
-      .get()
-    const myTeam = me?.teamId ?? '__none__'
+    const myTeam = memberTeamId(db, wsId, userId) ?? '__none__'
     const hit = db
       .select({ id: assignments.id })
       .from(assignments)
@@ -80,11 +76,7 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
         and(
           eq(assignments.workspaceId, wsId),
           eq(assignments.guideId, guideId),
-          sql`(
-            (${assignments.targetKind} = 'user' AND ${assignments.targetId} = ${userId})
-            OR (${assignments.targetKind} = 'team' AND ${assignments.targetId} = ${myTeam})
-            OR (${assignments.targetKind} = 'workspace' AND ${assignments.targetId} = ${wsId})
-          )`,
+          assignmentTargetsMe(userId, myTeam, wsId),
         ),
       )
       .get()
@@ -154,6 +146,8 @@ export function makeGuideHelpers(db: Db, auth: Auth, publicBase: string) {
       stepCount: r.stepCount,
       kind: r.kind === 'booklet' ? 'booklet' : 'guide',
       thumbFileId: r.thumbFileId ?? undefined,
+      // خصوصيّة ٢ب: المصغّرة برابطها الموقَّع — القائمة لا تركّب رابطًا من المعرّف
+      ...(r.thumbFileId ? { thumbUrl: signer.original(r.thumbFileId) } : {}),
       starred: !!r.starred,
       folderId: r.folderId,
       tags: parseTags(r.tags),

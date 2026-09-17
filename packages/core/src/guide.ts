@@ -108,6 +108,21 @@ export interface StepVoice {
   pending?: boolean
 }
 
+/** DTOP-01: مصدر التقاط الخطوة — اتحاد تمييزي مطابق لـStepSourceDto في shared حرفيًّا
+ *  (النواة لا تستورد shared؛ الاتساق يُحرس بخبر expectTypeOf في shared/test) */
+export type StepSource =
+  | { kind: 'web'; url: string; pageTitle: string }
+  | {
+      kind: 'desktop'
+      processName: string
+      windowTitle: string
+      appId: string
+      uiaFramework?: string
+      ieMode?: boolean
+      url?: string
+    }
+  | { kind: 'camera'; deviceModel?: string }
+
 export interface Step {
   id: string
   kind: StepKind
@@ -118,8 +133,11 @@ export interface Step {
   target: StepTarget
   value?: string
   sensitive: boolean
-  url: string
-  pageTitle: string
+  /** ‏DTOP-01: ثنائية v1 للويب — اختيارية منذ مصادر الديسكتوب/الكاميرا؛ استخدم source أولًا */
+  url?: string
+  pageTitle?: string
+  /** DTOP-01: مصدر الخطوة الصريح — الأدلة القديمة بلا source تُفسَّر ويبًا من الرابطين */
+  source?: StepSource
   ts: number
   screenshot?: ScreenshotMeta | MissingScreenshot
   /** BLK-01: نوع كتلة النداء/الهيدر — اختياري جمعيًا؛ غيابه خطوة عادية تُرقَّم */
@@ -146,7 +164,8 @@ export interface AudioMeta {
 
 export interface Guide {
   id: string
-  schemaVersion: 1
+  /** DTOP-01: القراءة تقبل ١ و٢، والكتابة ٢ دائمًا (assembleGuide + بوّابة الخادم) */
+  schemaVersion: 1 | 2
   /** BKL-01: نوع المستند — غيابه يعني دليلًا. الأدلة القائمة كلها تعبر بلا ترحيل محتوى. */
   kind?: 'guide' | 'booklet'
   title: string
@@ -179,9 +198,17 @@ export function canAppendSteps(existing: number, incoming: number): { ok: true }
   return { ok: false, reason: `الدليل بلغ حد ${GUIDE_MAX_STEPS} خطوة — لا يمكن إضافة المزيد` }
 }
 
-export function deriveGuideTitle(steps: Pick<Step, 'kind' | 'pageTitle'>[]): string {
+/** DTOP-01: عنوان «المكان» للخطوة أيًّا كان مصدرها — نافذة التطبيق للديسكتوب وعنوان الصفحة للويب */
+export function placeTitleOf(s: { pageTitle?: string; source?: StepSource }): string | undefined {
+  if (s.source?.kind === 'desktop') return s.source.windowTitle
+  if (s.source?.kind === 'web') return s.source.pageTitle
+  if (s.source?.kind === 'camera') return undefined
+  return s.pageTitle
+}
+
+export function deriveGuideTitle(steps: Array<Pick<Step, 'kind'> & { pageTitle?: string; source?: StepSource }>): string {
   const firstNav = steps.find((s) => s.kind === 'navigate')
-  const pageTitle = firstNav?.pageTitle ?? steps[0]?.pageTitle
-  const clean = pageTitle?.replace(/\s+/g, ' ').trim()
+  const place = (firstNav && placeTitleOf(firstNav)) ?? (steps[0] && placeTitleOf(steps[0]))
+  const clean = place?.replace(/\s+/g, ' ').trim()
   return clean ? `دليل: ${clean.slice(0, 80)}` : 'دليل بلا عنوان'
 }
