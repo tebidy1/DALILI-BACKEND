@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.output/
+.wxt/
+.vite/
+.vitest/
+data/
+.env
+.env.*
+!.env.example
+*.log
+.models/
+tsconfig.tsbuildinfo
+.mimosa/
+.claude/
+.DS_Store
