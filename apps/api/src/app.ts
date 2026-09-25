@@ -25,8 +25,12 @@ import { registerInviteRoutes } from './routes/invites'
 import { registerLibraryRoutes } from './routes/library'
 import { registerReportsRoutes } from './routes/reports'
 import { registerAssignmentRoutes } from './routes/assignments'
+import { registerTranslateRoute } from './routes/translate'
+import { makeGuideHelpers } from './routes/guides-shared'
 import { createGroqSttProvider } from './stt/groq'
+import { createGroqTranslateProvider } from './translate/groq'
 import type { SttProvider } from './stt/provider'
+import type { TranslateProvider } from './translate/provider'
 import type { EmbeddingProvider } from './embeddings/provider'
 
 export interface AppOptions {
@@ -40,6 +44,8 @@ export interface AppOptions {
   groqApiKey?: string
   /** حقن مزوّد بديل (اختبار) — يتقدّم على البناء من المفتاح */
   stt?: SttProvider
+  /** TRNS-01: حقن مزوّد ترجمة بديل (اختبار) — الافتراضي يُبنى من مفتاح قروك نفسه */
+  translate?: TranslateProvider
   /** SRCH-06: مزوّد التضمين — يُبنى في index.ts (المحلي) ويُحقن هنا؛ غيابه = حرفي فقط */
   embeddings?: EmbeddingProvider
   /** DTOP-04: أصول CORS — غيابه = الافتراضي */
@@ -104,6 +110,10 @@ export async function createApp(opts: AppOptions) {
   // VOX-04: المزوّد المحقون (اختبار) أو المبني من مفتاح قروك، أو لا شيء (النقطة تردّ 503)
   const stt = opts.stt ?? (opts.groqApiKey ? createGroqSttProvider({ apiKey: opts.groqApiKey }) : undefined)
   registerGuideRoutes(app, db, auth, opts.publicBase, sqlite, filesDir, signer, derivatives, idempotency, stt, opts.embeddings)
+  // TRNS-01: مزوّد الترجمة — نفس مفتاح قروك يخدم المسارين، والبنّاء المشترك يمنح ملكية الدليل،
+  // والموقّع يعيد روابط صور الرد موقَّعة كمسار القراءة
+  const translate = opts.translate ?? (opts.groqApiKey ? createGroqTranslateProvider({ apiKey: opts.groqApiKey }) : undefined)
+  registerTranslateRoute(app, db, auth, sqlite, translate, signer, makeGuideHelpers(db, auth, opts.publicBase, signer))
   registerCommentRoutes(app, db, auth)
   registerFolderRoutes(app, db, auth)
   registerSearchRoutes(app, sqlite, auth, signer, opts.embeddings)

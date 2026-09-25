@@ -673,6 +673,57 @@ exports[`لقطة عقد الدليل (zGuide) > مخطط JSON مستقر — ك
     "title": {
       "type": "string",
     },
+    "translations": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": "string",
+          },
+          "items": {
+            "additionalProperties": {
+              "type": "string",
+            },
+            "type": "object",
+          },
+          "meta": {
+            "additionalProperties": false,
+            "properties": {
+              "createdAt": {
+                "type": "string",
+              },
+              "provider": {
+                "type": "string",
+              },
+              "sourceUpdatedAt": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "provider",
+              "createdAt",
+              "sourceUpdatedAt",
+            ],
+            "type": "object",
+          },
+          "title": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "title",
+          "items",
+          "meta",
+        ],
+        "type": "object",
+      },
+      "propertyNames": {
+        "enum": [
+          "en",
+        ],
+      },
+      "type": "object",
+    },
     "updatedAt": {
       "type": "string",
     },

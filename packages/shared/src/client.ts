@@ -139,6 +139,11 @@ export class DaliliClient {
     return this.req<{ myLocale: 'ar' | 'en' }>('/api/me/locale', { method: 'PUT', json: { locale } })
   }
 
+  /** TRNS-01: توليد/تجديد الترجمة الإنجليزية — الخادم يعيد الدليل محدثًا */
+  translateGuide(id: string) {
+    return this.req<{ guide: GuideDto }>(`/api/guides/${id}/translate`, { method: 'POST', json: { locale: 'en' } })
+  }
+
   /** المرحلة ج (أنشئ بواسطي + التقارير): التقرير المجمّع لأدلتي — شريط أعلى الشاشة */
   myReport(signal?: AbortSignal) {
     return this.req<MineReportDto>('/api/reports/mine', { signal })

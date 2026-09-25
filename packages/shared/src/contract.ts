@@ -174,6 +174,23 @@ export const zAudioMeta = z.object({
   pauses: z.array(z.tuple([z.number(), z.number()])).optional(),
 })
 
+/** TRNS-01: ترجمة محتوى الدليل (طبقة تراكب) — الأصل العربي مقدَّس والغائب يرتد إليه.
+ *  items مفاتيحها مسارات مستقرة: 'title' · 'description' · 'steps/<id>/title|note|alt|
+ *  targetText|targetLabel|pageTitle' · 'steps/<id>/rich/<para>/<run>' */
+export const zGuideTranslation = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  items: z.record(z.string(), z.string()),
+  meta: z.object({
+    provider: z.string(),
+    createdAt: z.string(),
+    sourceUpdatedAt: z.string(),
+  }),
+})
+export type GuideTranslationDto = z.infer<typeof zGuideTranslation>
+/** لغات الترجمة المسموحة اليوم — إضافة لغة لاحقًا = توسيع هذا القيد فقط */
+export const zTranslateGuideRequest = z.object({ locale: z.enum(['en']) })
+
 export const zGuide = z.object({
   id: z.string(),
   /** DTOP-01: ١ = مسطّح (url/pageTitle على الخطوة) · ٢ = source صريح — القِدم مقبول حتى تهجرة الإضافة،
@@ -189,6 +206,8 @@ export const zGuide = z.object({
   updatedAt: z.string(),
   steps: z.array(zStep),
   audio: zAudioMeta.optional(),
+  /** TRNS-01: ترجمات المحتوى — اختياري جمعي (الأدلة القديمة صالحة) */
+  translations: z.record(z.enum(['en']), zGuideTranslation).optional(),
 })
 
 export type GuideDto = z.infer<typeof zGuide>

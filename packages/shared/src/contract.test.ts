@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { zAppendSteps, zCreateAssignment, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zStepSource, zUpdateComment, zVersionSummary } from './contract'
+import { zAppendSteps, zCreateAssignment, zCreateComment, zGuide, zGuideVersionDetails, zListVersions, zSearchQuery, zStep, zStepComment, zStepSource, zTranslateGuideRequest, zUpdateComment, zVersionSummary } from './contract'
 
 /** ASG: عقد إنشاء الإسناد — عدة أهداف بأنواع محصورة، وقائمة غير فارغة */
 describe('zCreateAssignment', () => {
@@ -312,6 +312,52 @@ describe('zGuide audio', () => {
   it('يرفض صوتًا بمدة سالبة أو بلا معرّف ملف', () => {
     expect(zGuide.safeParse({ ...base, audio: { ...audio, durationMs: -1 } }).success).toBe(false)
     expect(zGuide.safeParse({ ...base, audio: { ...audio, fileId: '' } }).success).toBe(false)
+  })
+})
+
+/** TRNS-01: ترجمة المحتوى — طبقة تراكب اختياريّة جمعيًّا على zGuide */
+describe('zGuide translations', () => {
+  const base = {
+    id: 'g1',
+    schemaVersion: 2,
+    title: 'دليل',
+    locale: 'ar',
+    dir: 'rtl',
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    steps: [{ id: 's1', kind: 'click', title: 'افتح', target: {}, sensitive: false, ts: 0, source: { kind: 'web', url: 'https://x.sa', pageTitle: 'الصفحة' } }],
+  }
+  const en = {
+    title: 'Guide',
+    items: { title: 'Guide', 'steps/s1/title': 'Open' },
+    meta: { provider: 'groq:x', createdAt: '2026-01-02T00:00:00Z', sourceUpdatedAt: '2026-01-01T00:00:00Z' },
+  }
+
+  it('دليل قديم بلا ترجمة يبقى صالحًا', () => {
+    expect(zGuide.safeParse(base).success).toBe(true)
+  })
+
+  it('مع translations يمرّ round-trip بحقوله', () => {
+    const r = zGuide.safeParse({ ...base, updatedAt: '2026-01-02T00:00:00Z', translations: { en } })
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.translations!.en!.items['steps/s1/title']).toBe('Open')
+      expect(r.data.translations!.en!.meta.provider).toBe('groq:x')
+    }
+  })
+
+  it('ترجمة بلا عنوان مرفوضة — العنوان أساس الطبقة', () => {
+    const r = zGuide.safeParse({ ...base, translations: { en: { ...en, title: undefined } } })
+    expect(r.success).toBe(false)
+  })
+})
+
+/** TRNS-01: طلب الترجمة — الإنجليزية حصرًا اليوم (إضافة لغة = توسيع القيد) */
+describe('zTranslateGuideRequest', () => {
+  it('يقبل en ويرفض غيره', () => {
+    expect(zTranslateGuideRequest.safeParse({ locale: 'en' }).success).toBe(true)
+    expect(zTranslateGuideRequest.safeParse({ locale: 'ar' }).success).toBe(false)
+    expect(zTranslateGuideRequest.safeParse({}).success).toBe(false)
   })
 })
 
