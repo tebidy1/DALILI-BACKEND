@@ -25,7 +25,6 @@ import { registerInviteRoutes } from './routes/invites'
 import { registerLibraryRoutes } from './routes/library'
 import { registerReportsRoutes } from './routes/reports'
 import { registerAssignmentRoutes } from './routes/assignments'
-import { registerExamRoutes } from './routes/exam'
 import { registerTranslateRoute } from './routes/translate'
 import { makeGuideHelpers } from './routes/guides-shared'
 import { createGroqSttProvider } from './stt/groq'
@@ -126,8 +125,6 @@ export async function createApp(opts: AppOptions) {
   registerLibraryRoutes(app, db, auth)
   registerReportsRoutes(app, db, auth)
   registerAssignmentRoutes(app, db, auth)
-  // EXAM: التدريب والاختبار الشامل OEEM — بنك الأسئلة ومحاولات الـ100/150
-  registerExamRoutes(app, db, auth)
 
   app.setNotFoundHandler((_req, reply) => {
     return reply.code(404).send({ errorAr: 'المسار غير موجود' })

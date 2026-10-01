@@ -36,17 +36,6 @@ import type {
   AssignTargetDto,
   DeviceDto,
   DevicePendingDto,
-  ExamAnswerSaveReq,
-  ExamAttemptViewDto,
-  ExamBlueprintDto,
-  ExamHistoryDto,
-  ExamResultViewDto,
-  ExamStartResDto,
-  ExamStateDto,
-  ExamSubmitResDto,
-  PracticeAnswerReq,
-  PracticeFeedbackDto,
-  PracticeQuestionDto,
 } from './contract'
 
 export class DaliliApiError extends Error {
@@ -426,50 +415,4 @@ export class DaliliClient {
     await this.req<void>(`/api/devices/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 
-  // ——— التدريب والاختبار الشامل OEEM (EXAM) ——
-
-  examState(signal?: AbortSignal) {
-    return this.req<ExamStateDto>('/api/exam/state', { signal })
-  }
-
-  examBlueprint(signal?: AbortSignal) {
-    return this.req<ExamBlueprintDto>('/api/exam/blueprint', { signal })
-  }
-
-  examHistory(signal?: AbortSignal) {
-    return this.req<ExamHistoryDto>('/api/exam/history', { signal })
-  }
-
-  /** focus=weak يخدم أسئلة أدنى مجالاتك دقّةً — حلقة «درّب نقاط ضعفك» */
-  practiceQuestion(focus: 'weak' | 'random' = 'random', signal?: AbortSignal) {
-    return this.req<PracticeQuestionDto>(`/api/exam/practice/question?focus=${focus}`, { signal })
-  }
-
-  practiceAnswer(input: PracticeAnswerReq) {
-    return this.req<PracticeFeedbackDto>('/api/exam/practice/answer', { method: 'POST', json: input })
-  }
-
-  startExam() {
-    return this.req<ExamStartResDto>('/api/exam/attempts', { method: 'POST' })
-  }
-
-  getExamAttempt(id: string, signal?: AbortSignal) {
-    return this.req<{ view: ExamAttemptViewDto }>(`/api/exam/attempts/${encodeURIComponent(id)}`, { signal })
-  }
-
-  /** حفظ تلقائي لكل إجابة — انقطاع أو انهيار لا يُفقِد محاولة الـ150 دقيقة */
-  saveExamAnswer(id: string, input: ExamAnswerSaveReq) {
-    return this.req<{ ok: true }>(`/api/exam/attempts/${encodeURIComponent(id)}/answers`, {
-      method: 'PUT',
-      json: input,
-    })
-  }
-
-  submitExam(id: string) {
-    return this.req<ExamSubmitResDto>(`/api/exam/attempts/${encodeURIComponent(id)}/submit`, { method: 'POST' })
-  }
-
-  getExamResult(id: string, signal?: AbortSignal) {
-    return this.req<ExamResultViewDto>(`/api/exam/attempts/${encodeURIComponent(id)}/result`, { signal })
-  }
 }

@@ -432,65 +432,6 @@ export function listMigrations(): Migration[] {
         addColumn(sqlite, 'users', 'locale', "TEXT NOT NULL DEFAULT 'ar'")
       },
     },
-    {
-      // EXAM (ترحيل 0021): بنك أسئلة OEEM + محاولات الاختبار الشامل + حالة نقاط التدريب.
-      // زرع الأسئلة من seed/*.json صيانة إقلاع في db/seed-exam.ts لا ترحيل — البذور
-      // محتوى قد يكتمل بعد تطبيق السكيمة.
-      id: '0021',
-      name: 'exam-oeem',
-      up: (sqlite) => {
-        sqlite
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS exam_questions (
-               id             TEXT PRIMARY KEY,
-               domain         TEXT NOT NULL,
-               difficulty     INTEGER NOT NULL DEFAULT 2,
-               stem           TEXT NOT NULL,
-               options        TEXT NOT NULL,
-               answer_index   INTEGER NOT NULL,
-               explanation_ar TEXT NOT NULL DEFAULT '',
-               active         INTEGER NOT NULL DEFAULT 1
-             )`,
-          )
-          .run()
-        sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_exam_questions_domain ON exam_questions(domain, active)').run()
-        sqlite
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS exam_attempts (
-               id           TEXT PRIMARY KEY,
-               user_id      TEXT NOT NULL,
-               status       TEXT NOT NULL DEFAULT 'in_progress',
-               started_at   TEXT NOT NULL,
-               deadline_at  TEXT NOT NULL,
-               submitted_at TEXT,
-               score        INTEGER,
-               total        INTEGER NOT NULL,
-               question_ids TEXT NOT NULL,
-               answers      TEXT NOT NULL DEFAULT '{}',
-               flagged      TEXT NOT NULL DEFAULT '[]',
-               per_domain   TEXT NOT NULL DEFAULT '[]',
-               spent_ms     INTEGER NOT NULL DEFAULT 0
-             )`,
-          )
-          .run()
-        sqlite.prepare('CREATE INDEX IF NOT EXISTS idx_exam_attempts_user ON exam_attempts(user_id, started_at DESC)').run()
-        sqlite
-          .prepare(
-            `CREATE TABLE IF NOT EXISTS user_exam_state (
-               user_id        TEXT PRIMARY KEY,
-               answered_total INTEGER NOT NULL DEFAULT 0,
-               correct_total  INTEGER NOT NULL DEFAULT 0,
-               credits_earned INTEGER NOT NULL DEFAULT 0,
-               credits_used   INTEGER NOT NULL DEFAULT 0,
-               streak         INTEGER NOT NULL DEFAULT 0,
-               best_streak    INTEGER NOT NULL DEFAULT 0,
-               domain_stats   TEXT NOT NULL DEFAULT '{}',
-               updated_at     TEXT NOT NULL
-             )`,
-          )
-          .run()
-      },
-    },
   ]
 }
 
