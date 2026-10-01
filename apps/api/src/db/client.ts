@@ -5,6 +5,7 @@ import path from 'node:path'
 import * as schema from './schema'
 import { applyMigrations } from './migrations'
 import { purgeExpiredTrash } from '../lib/trash'
+import { seedExamIfEmpty } from './seed-exam'
 
 /** نوع القاعدة الموحد لكل المسارات — المصدر الواحد يمنع اتحادات ملتوية وأكاذيب `as never` */
 export type Db = BetterSQLite3Database<typeof schema>
@@ -26,5 +27,7 @@ export function createDb(dataDir: string): DbBundle {
   applyMigrations(sqlite)
   // صيانة إقلاع متكررة (ليست ترحيلًا): كنس سلة متقادمة 30 يومًا
   purgeExpiredTrash(sqlite)
+  // EXAM-01: زرع بنك أسئلة OEEM إن كان فارغًا — المحتوى قد يكتمل بعد السكيمة
+  seedExamIfEmpty(sqlite)
   return { sqlite, db: drizzle(sqlite, { schema }), filesDir }
 }

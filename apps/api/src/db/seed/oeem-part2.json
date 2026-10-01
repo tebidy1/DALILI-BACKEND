@@ -1,0 +1,353 @@
+[
+  {
+    "domain": "toxicology",
+    "difficulty": 1,
+    "stem": "A 19-year-old woman presents to the emergency department 8 hours after ingesting an unknown number of paracetamol 500 mg tablets. Her serum paracetamol concentration plots above the treatment line on the Rumack-Matthew nomogram. Liver enzymes and INR are currently normal. What is the most appropriate management?",
+    "options": [
+      "Oral activated charcoal and observation for 24 hours",
+      "Repeat the paracetamol level in 12 hours before deciding on treatment",
+      "Start an IV N-acetylcysteine infusion immediately",
+      "Urine alkalinization with IV sodium bicarbonate"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "مستوى الباراسيتامول فوق خط العلاج في مخطط Rumack-Matthew يعني خطر نخر الكبد، والعلاج الأساسي هو N-acetylcysteine (NAC) وريديًا فورًا لأنه يعيد مخزون الغلوتاثيون."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 1,
+    "stem": "A 27-year-old man is brought in unresponsive with a respiratory rate of 6 breaths/min, pinpoint pupils, and SpO2 of 78%; friends report heroin use shortly before arrival. What is the most appropriate initial intervention?",
+    "options": [
+      "IV naloxone in small titrated doses until ventilation improves",
+      "Immediate endotracheal intubation before any pharmacologic reversal",
+      "IV flumazenil to reverse the sedation",
+      "Naloxone 10 mg IV bolus to achieve complete reversal"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "يُعطى naloxone وريديًا بجرعات صغيرة متدرجة (0.04–0.4 ملغ) بهدف استعادة التهوية الكافية وليس إيقاظ المريض كليًا، تجنبًا لانسحاب الأفيونيات الحاد والوذمة الرئوية."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 2,
+    "stem": "A 35-year-old farm worker presents 2 hours after spraying organophosphate pesticide with profuse salivation, lacrimation, vomiting, miosis, bradycardia, and diffuse muscle fasciculations. What is the most appropriate initial pharmacologic therapy?",
+    "options": [
+      "IV physostigmine",
+      "IV atropine titrated until secretions dry, plus IV pralidoxime",
+      "IV naloxone and oral activated charcoal",
+      "Oral pilocarpine and aggressive IV fluids"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "متلازمة الكولين الناجمة عن المبيدات الفسفورية العضوية تُعالج بـ atropine وريديًا بالتكرار والتنصيف حتى جفاف الإفرازات، مع pralidoxime لإعادة تنشيط إنزيم acetylcholinesterase قبل شيخوخة الرابطة."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 2,
+    "stem": "A 24-year-old woman arrives 2 hours after ingesting a large quantity of amitriptyline. She is confused and hypotensive, and the ECG shows sinus tachycardia with a QRS duration of 140 ms. What is the most appropriate immediate treatment?",
+    "options": [
+      "IV amiodarone infusion",
+      "IV phenytoin for arrhythmia prophylaxis",
+      "Immediate synchronized electrical cardioversion",
+      "IV sodium bicarbonate bolus"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "توسع QRS فوق 100 مللي ثانية مع انخفاض الضغط في التسمم بمضادات الاكتئاب ثلاثية الحلقة يستدعي sodium bicarbonate وريديًا لأن القلوية تتنافس مع الدواء على القنوات الصوديومية القلبية."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 2,
+    "stem": "A 31-year-old woman presents with tinnitus, nausea, and hyperpnea 6 hours after ingesting a large quantity of aspirin. Arterial pH is 7.48 and the salicylate level is 55 mg/dL. Which intervention is most appropriate at this time?",
+    "options": [
+      "IV sodium bicarbonate infusion targeting a urine pH above 7.5",
+      "Immediate hemodialysis",
+      "Oral activated charcoal only and discharge home",
+      "IV furosemide to force diuresis"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "التسمم بالساليسيلات يعالج بقلوية البول عبر تسريب sodium bicarbonate لرفع pH البول فوق 7.5 فتزداد الإفرازات الكلوية للساليسيلات المتأينة؛ وغسيل الكلى يُحفظ للمستويات العالية جدًا أو الاضطراب الواعي والاختلاجات."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 2,
+    "stem": "A 45-year-old man and his family present with headache, nausea, and confusion after running a gasoline generator indoors overnight. He had a brief loss of consciousness at home, and his carboxyhemoglobin level is 27%. What is the most appropriate treatment?",
+    "options": [
+      "Symptomatic treatment and discharge home",
+      "Intravenous methylprednisolone",
+      "100% oxygen via non-rebreather mask, with consideration of hyperbaric oxygen therapy",
+      "Immediate lumbar puncture"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "أساس علاج تسمم أول أكسيد الكربون هو الأكسجين 100% بقناع non-rebreather لتقصير عمر carboxyhemoglobin النصفي، ويُنظر بالأكسجين العالي الضغط (hyperbaric oxygen) عند فقدان الوعي أو وجود عجز عصبي."
+  },
+  {
+    "domain": "toxicology",
+    "difficulty": 3,
+    "stem": "A 34-year-old woman with chronic benzodiazepine dependence is drowsy and hypoventilating after a suspected mixed overdose; the ingested agents are unknown. A colleague suggests immediate flumazenil administration. Why is flumazenil contraindicated in this patient?",
+    "options": [
+      "It causes acute hepatic failure in chronic benzodiazepine users",
+      "It may precipitate refractory seizures and acute benzodiazepine withdrawal",
+      "It inactivates the effect of N-acetylcysteine",
+      "It prolongs the QT interval and causes ventricular fibrillation"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "flumazenil مضاد استطباب في الجرعة المختلطة والاعتماد المزمن على بنزوديازيبينات لأنه قد يثير اختلاجات عضادية معندية على العلاج وانسحابًا حادًا، خصوصًا مع تناول مضادات اكتئاب ثلاثية الحلقة."
+  },
+  {
+    "domain": "endocrine_metabolic",
+    "difficulty": 2,
+    "stem": "A 24-year-old woman with type 1 diabetes presents with diabetic ketoacidosis: glucose 520 mg/dL, pH 7.05, bicarbonate 6 mEq/L, and serum potassium 3.0 mEq/L. Isotonic saline is infusing. What is the most appropriate next step?",
+    "options": [
+      "Start an IV insulin infusion at 0.1 U/kg/h immediately",
+      "Give an IV sodium bicarbonate bolus to correct the acidosis",
+      "Add 10% dextrose to the IV fluids before insulin",
+      "Replace potassium before starting the insulin infusion"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "إذا كان البوتاسيوم أقل من 3.3 ميكروفول/لتر في الحماض الكيتوني السكري يجب تعويضه قبل الإنسولين، لأن الإنسولين (تسريب 0.1 وحدة/كغ/ساعة) يدفع البوتاسيوم إلى الخلايا وقد يسبب نقصًا مميتًا واضطراب نظم."
+  },
+  {
+    "domain": "endocrine_metabolic",
+    "difficulty": 3,
+    "stem": "A 72-year-old man with type 2 diabetes presents after 1 week of polyuria, confusion, and marked dehydration. Glucose is 980 mg/dL, effective serum osmolality 335 mOsm/kg, pH 7.38, bicarbonate 22 mEq/L, and urine ketones are trace. What is the most likely diagnosis?",
+    "options": [
+      "Hyperosmolar hyperglycemic state",
+      "Diabetic ketoacidosis",
+      "Metformin-associated lactic acidosis",
+      "Severe hypoglycemia"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "الحالة فرط الأسمولية فرط السكر (HHS) تتميز بسكر فوق 600 ملغ/دل وأسمولية فعالة فوق 320 مع غياب الحماض وقلّة الكيتونات، ويُعالج بالسوائل الوريدية والإنسولين وبحث عن محفز عدوي أو ischemia."
+  },
+  {
+    "domain": "endocrine_metabolic",
+    "difficulty": 2,
+    "stem": "A 45-year-old woman on long-term prednisone for rheumatoid arthritis stopped it 5 days ago and now has vomiting, abdominal pain, and hypotension unresponsive to 2 liters of crystalloid. Sodium is 126 mEq/L, potassium 5.8 mEq/L, and glucose 58 mg/dL. What is the most appropriate immediate treatment?",
+    "options": [
+      "Wait for a cosyntropin stimulation test before any treatment",
+      "IV dexamethasone 4 mg with fluid restriction",
+      "IV hydrocortisone 100 mg with aggressive isotonic fluids",
+      "IV furosemide with maintenance normal saline"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "الأزمة الكظرية تُعالج فورًا بـ hydrocortisone 100 ملغ وريديًا مع المحلول الملحي دون انتظار اختبار cosyntropin، لأن التأخير مهدد للحياة والهيدروكورتيزون يوفر أيضًا تعويض المينيرالوكورتيكويد."
+  },
+  {
+    "domain": "endocrine_metabolic",
+    "difficulty": 3,
+    "stem": "A 38-year-old woman with untreated hyperthyroidism presents after a febrile illness with delirium, temperature 39.5°C, atrial fibrillation at 160/min, and diarrhea. What is the most appropriate initial management?",
+    "options": [
+      "Radioactive iodine ablation during this admission",
+      "IV beta-blocker with propylthiouracil and hydrocortisone",
+      "IV amiodarone alone for rhythm control",
+      "Urgent thyroidectomy before any medication"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "العاصفة الدرقية (thyroid storm) تُعالج بحاصر بيتا وريدي (propranolol) لمجاراة الأعراض الأدرينالية مع مضاد درقي مثل propylthiouracil ثم اليود بعده بساعة، إضافة إلى hydrocortisone الذي يخفض تحويل T4 إلى T3."
+  },
+  {
+    "domain": "endocrine_metabolic",
+    "difficulty": 1,
+    "stem": "A 66-year-old man with diabetes on glibenclamide is brought to the ED confused and diaphoretic. His capillary glucose is 38 mg/dL, and he cannot safely swallow oral fluids. What is the most appropriate immediate treatment?",
+    "options": [
+      "IV 50% dextrose followed by prolonged observation",
+      "Subcutaneous glucagon and discharge home",
+      "An oral glucose drink given slowly under supervision",
+      "Head CT before any glucose administration"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "نقص سكر الدم الشديد مع تأثر الوعي وعدم أمان البلع يعالج بديكستروز 50% وريديًا؛ ومستخدمو السلفونيل يوريا مثل glibenclamide يحتاجون مراقبة مطولة لأن النقص كثير التكرار."
+  },
+  {
+    "domain": "environment",
+    "difficulty": 2,
+    "stem": "A 30-year-old man is rescued from a snowstorm with a core temperature of 28°C and ventricular fibrillation; resuscitation is ongoing. What is the most appropriate management principle?",
+    "options": [
+      "Declare death after 20 minutes of unsuccessful resuscitation",
+      "Defer defibrillation until the core temperature exceeds 35°C",
+      "Continue resuscitation with active internal rewarming; do not declare death until he is rewarmed",
+      "Stop resuscitation because arrest at 28°C is uniformly fatal"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "في انخفاض الحرارة العميق يُستمر بالإنعاش مع إعادة التدفئة الفعالة الداخلية، والقاعدة الذهبية: لا يُعلن موت المريض قبل تدفئته (not dead until warm and dead)."
+  },
+  {
+    "domain": "environment",
+    "difficulty": 1,
+    "stem": "A 19-year-old football player collapses during practice in extreme heat. He is confused, with a core temperature of 41.2°C, hot skin, and tachycardia. After ABC stabilization, what is the most appropriate next step?",
+    "options": [
+      "IV paracetamol to lower the temperature",
+      "Cold IV fluids with reassessment in 6 hours",
+      "Ice packs to the groin only and reassessment in 1 hour",
+      "Immediate cold water immersion for rapid active cooling"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "ضربة الشمس (heat stroke) مع اضطراب الوعي وحرارة فوق 40 تعالج بالتبريد السريع النشط، ومعياره الذهبي الغمر في الماء البارد (cold water immersion) لخفض الحرارة تحت 39 درجة خلال 30 دقيقة."
+  },
+  {
+    "domain": "environment",
+    "difficulty": 2,
+    "stem": "A 28-year-old mountaineer presents with white, waxy, hard, numb fingers after 6 hours in extreme cold. What is the most appropriate management of the frozen extremities?",
+    "options": [
+      "Rubbing the fingers with snow to stimulate circulation",
+      "Rapid rewarming in a circulating warm water bath at 37-39°C",
+      "Slow gradual rewarming at room temperature over 24 hours",
+      "Immediate surgical debridement of non-viable tissue"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "القضامة (frostbite) تعالج بإعادة التدفئة السريعة في حمام ماء متجدد 37–39 درجة مئوية لمدة 15–30 دقيقة، مع تجنب الفرك أو التدفئة البطيئة أو التدخل الجراحي المبكر."
+  },
+  {
+    "domain": "environment",
+    "difficulty": 2,
+    "stem": "A 26-year-old diver develops severe joint pain, an itchy rash, and lower-limb weakness 30 minutes after a rapid ascent from a 40-meter dive. What is the most appropriate treatment?",
+    "options": [
+      "Immediate recompression with hyperbaric oxygen therapy",
+      "Subcutaneous low-molecular-weight heparin",
+      "IV steroids with observation at sea level",
+      "A brief self-controlled re-descent in shallow water"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "مرض إزالة الضغط (decompression sickness) يعالج بإعادة الضغط بالأكسجين العالي الضغط (hyperbaric recompression)، مع أكسجين 100% وسوائل وريدية أثناء النقل، ولا يُعاد الغوص إطلاقًا."
+  },
+  {
+    "domain": "environment",
+    "difficulty": 3,
+    "stem": "A 34-year-old climber develops severe headache, ataxia, and confusion over 12 hours at an altitude of 4500 meters. Descent is immediately feasible. What is the most appropriate management?",
+    "options": [
+      "Acetazolamide alone with a slower continued ascent",
+      "Nifedipine alone while remaining at the same altitude",
+      "Immediate descent combined with dexamethasone",
+      "Continued ascent with supplemental oxygen only"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "وذمة الدماغ الجبلية (HACE) حالة مميتة تعالج بالنزول الفوري مع dexamethasone 8 ملغ؛ أما nifedipine فهو دواء وذمة الرئة الجبلية (HAPE) وليس HACE."
+  },
+  {
+    "domain": "infectious_disease",
+    "difficulty": 1,
+    "stem": "A 25-year-old man presents with fever, severe headache, nuchal rigidity, photophobia, and a petechial rash on the trunk. A CT scan is pending before lumbar puncture. What is the most appropriate immediate step?",
+    "options": [
+      "Hold all antibiotics until CSF cultures are obtained",
+      "Immediate empiric ceftriaxone plus vancomycin with dexamethasone",
+      "Empiric oral antibiotics with outpatient follow-up",
+      "IV mannitol with observation and no antibiotics"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "في الاشتباه بالتهاب السحايا الجرثومي تعطى ceftriaxone مع vancomycin والديكساميثازون فورًا قبل أو مع أول جرعة مضاد دون انتظار التصوير أو البزل، فالديكساميثازون يقلل المضاعفات العصبية والتأخر يزيد الوفيات."
+  },
+  {
+    "domain": "infectious_disease",
+    "difficulty": 1,
+    "stem": "A 68-year-old man presents with fever 39°C, blood pressure 88/50 mmHg, heart rate 118/min, and dysuria; lactate is 4 mmol/L and crystalloids are infusing. What is the most appropriate next step within the first hour?",
+    "options": [
+      "Draw blood cultures and administer broad-spectrum IV antibiotics",
+      "Repeat the lactate in 4 hours before starting antibiotics",
+      "Urinalysis with empiric oral antibiotics and discharge",
+      "IV hydrocortisone with antibiotics deferred until imaging"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "حزمة إنعاش الإنتان (sepsis bundle) تتطلب سحب المزارع الدموية ثم بدء مضاد حيوي واسع الطيف وريديًا خلال ساعة واحدة من الاعتراف بالإنتان، فكل ساعة تأخير ترفع الوفيات."
+  },
+  {
+    "domain": "infectious_disease",
+    "difficulty": 3,
+    "stem": "A 55-year-old intravenous drug user presents with 2 weeks of fever. Three sets of blood cultures grow Staphylococcus aureus, and echocardiography shows an oscillating tricuspid valve vegetation. How is his condition classified by the modified Duke criteria?",
+    "options": [
+      "Possible infective endocarditis because only minor criteria are met",
+      "Rejected, because S. aureus bacteremia alone is never sufficient",
+      "Possible infective endocarditis, pending a third set of blood cultures",
+      "Definite infective endocarditis, fulfilling two major criteria"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "معايير Duke المعدلة: زرع دم نموذجي (S. aureus) مع شغافة (vegetation) على تخطيط الصدى يحققان معيارين رئيسيين، ووجود معيارين رئيسيين يعني تشخيصًا مؤكدًا لالتهاب الشغاف الإنتاني (definite IE)."
+  },
+  {
+    "domain": "infectious_disease",
+    "difficulty": 2,
+    "stem": "A 29-year-old man returned from Sudan 10 days ago and now presents with fever, chills, headache, and splenomegaly; hemoglobin is 9.8 g/dL with platelets 70,000/µL. What is the most appropriate next diagnostic step?",
+    "options": [
+      "Serologic dengue testing with reassurance",
+      "Empiric ceftriaxone and discharge if afebrile",
+      "Thick and thin Giemsa-stained blood smears",
+      "Stool ova and parasite examination"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "الملاريا عند مسافر عائد تُشخّص بمسحة دم سميكة ورقيقة بصبغة Giemsa؛ وإذا ثبتت P. falciparum مع علامات وخامة يبدأ artesunate وريديًا عاجلًا."
+  },
+  {
+    "domain": "infectious_disease",
+    "difficulty": 1,
+    "stem": "A 40-year-old farmer sustains a deep puncture wound to the foot contaminated with soil. He completed a primary tetanus series in childhood, and his last booster was 12 years ago. What is the correct prophylaxis?",
+    "options": [
+      "Tetanus toxoid booster alone",
+      "Tetanus immune globulin plus a Td (tetanus-diphtheria) booster",
+      "No prophylaxis needed since the primary series was completed",
+      "Tetanus immune globulin alone without any vaccine"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "الجرح الموسد الملوث (نوع dirty) يستدعي غلوبولين الكزاز المناعي (TIG) مع جرعة لقاح Td/Tdap إذا مضى أكثر من 5 سنوات على آخر جرعة تعزيزية."
+  },
+  {
+    "domain": "respiratory",
+    "difficulty": 1,
+    "stem": "A 20-year-old woman presents with an acute severe asthma exacerbation; she cannot complete a sentence in one breath, respiratory rate is 30/min, SpO2 is 89% on room air, and the chest is silent on auscultation. What is the most appropriate initial management?",
+    "options": [
+      "Oxygen, repeated nebulized salbutamol with ipratropium, and systemic corticosteroids",
+      "Nebulized adrenaline as the sole bronchodilator",
+      "An inhaled corticosteroid puffer alone with reassessment in 2 hours",
+      "Immediate endotracheal intubation before any nebulization"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "نوبة الربو الحادة الشديدة تعالج بالأكسجين مع سالبوتامول (salbutamol) وإبراتروبيوم (ipratropium) مبخرًا متكررًا وستيرويد جهازي فوري؛ والصدر الصامت علامة إنذار قصوى."
+  },
+  {
+    "domain": "respiratory",
+    "difficulty": 2,
+    "stem": "A 35-year-old woman taking oral contraceptives presents with 2 days of pleuritic chest pain and mild dyspnea; heart rate is 104/min, and she has no prior VTE, hemoptysis, recent surgery, or malignancy. What is the most appropriate initial diagnostic approach?",
+    "options": [
+      "Immediate CT pulmonary angiography without risk assessment",
+      "Lower-limb compression ultrasound only",
+      "Empiric thrombolysis pending imaging",
+      "Calculate the Wells score and check D-dimer if low probability"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "الشك بانصمام رئوي يبدأ بحساب درجة Wells؛ فاحتمالية D-dimer السلبية في المرضى منخفضي الاحتمال تستبعد الانصمام، أما ارتفاعه أو الاحتمالية العالية فتستدعي CT pulmonary angiography."
+  },
+  {
+    "domain": "respiratory",
+    "difficulty": 2,
+    "stem": "A 65-year-old man with severe COPD deteriorates despite nebulized bronchodilators, systemic steroids, and controlled oxygen; he is drowsy but arousable. Arterial blood gas shows pH 7.24, pCO2 72 mmHg, and pO2 55 mmHg. What is the most appropriate next step?",
+    "options": [
+      "High-flow nasal oxygen with reassessment in the morning",
+      "An intravenous doxapram infusion",
+      "Noninvasive positive-pressure ventilation (BiPAP)",
+      "Immediate intubation and invasive ventilation"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "في تفاقم COPD مع حماض تنفسي (pH أقل من 7.35 وpCO2 أعلى من 45) لدى مريض واعٍ جزئيًا، يُعد التهوية غير الغازية (NIV/BiPAP) العلاج المختار قبل اللجوء إلى التنبيب."
+  },
+  {
+    "domain": "respiratory",
+    "difficulty": 2,
+    "stem": "A 22-year-old tall, thin man develops sudden right-sided pleuritic pain and dyspnea at rest. Chest radiograph shows a right spontaneous pneumothorax with a 3 cm air rim at the hilum. What is the most appropriate management?",
+    "options": [
+      "Observation with supplemental oxygen and repeat chest x-ray in 6 hours",
+      "Insertion of an intercostal chest drain",
+      "Needle decompression in the second intercostal space at the midclavicular line",
+      "Emergency thoracotomy with pleurectomy"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "الاسترواح التلقائي الأولي الكبير (شعيرة هوائية أكبر من 2 سم عند سرّ الرئة) مع أعراض يعالج بتصريف صدري (chest tube)؛ أما الاسترواح الصغير غير العرضي فيكفي فيه المراقبة بالأكسجين، ووخز الإبرة مخصص للاسترواح التوتري."
+  },
+  {
+    "domain": "respiratory",
+    "difficulty": 3,
+    "stem": "A 72-year-old man with community-acquired pneumonia is disoriented, with respiratory rate 30/min, blood pressure 92/58 mmHg, urea 9 mmol/L, and SpO2 90% on air. What does the CURB-65 assessment indicate?",
+    "options": [
+      "Severe pneumonia (score 5) requiring hospital admission with ICU consideration",
+      "Low severity (score 1) suitable for outpatient treatment",
+      "Moderate severity (score 3) manageable with oral antibiotics at home",
+      "A score of 2 warranting brief observation only"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "درجة CURB-65 هنا 5: الارتباك، اليوريا فوق 7 مليمول/لتر، معدل التنفس 30 أو أكثر، الانبساطي 60 أو أقل، والعمر 65 أو أكثر؛ ودرجة 3 فأكثر تعني ذات رئة شديدة تستدعي الدخول والنظر بالعناية المركزة."
+  }
+]

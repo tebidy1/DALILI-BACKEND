@@ -25,6 +25,7 @@ import { registerInviteRoutes } from './routes/invites'
 import { registerLibraryRoutes } from './routes/library'
 import { registerReportsRoutes } from './routes/reports'
 import { registerAssignmentRoutes } from './routes/assignments'
+import { registerExamRoutes } from './routes/exam'
 import { registerTranslateRoute } from './routes/translate'
 import { makeGuideHelpers } from './routes/guides-shared'
 import { createGroqSttProvider } from './stt/groq'
@@ -90,7 +91,9 @@ export async function createApp(opts: AppOptions) {
 
   const auth = makeAuth(db)
   // خصوصيّة ٢ب: كل رابط ملفّ يخرج من الخادم موقَّع — مفتاحه مشتقّ من سرّ الكوكي
-  const signer = makeFileSigner(opts.cookieSecret)
+  // القاعدة العموميّة تدخل التوقيع مُخرَجًا لا مبصومًا (file-cap): الويب على
+  // دومينٍ آخر يجب أن تصل صورُه إلى الـAPI لا إلى نفسه (علّة 2026-09-30)
+  const signer = makeFileSigner(opts.cookieSecret, () => Date.now(), opts.publicBase)
   // الحرق ~1.7s للقطة 1920×1080 بـjpeg-js النقيّة — خارج خيط الخادم إلزاميًّا
   const burnPool = createBurnPool()
   const derivatives = createDerivatives(db, filesDir, burnPool)
@@ -123,6 +126,8 @@ export async function createApp(opts: AppOptions) {
   registerLibraryRoutes(app, db, auth)
   registerReportsRoutes(app, db, auth)
   registerAssignmentRoutes(app, db, auth)
+  // EXAM: التدريب والاختبار الشامل OEEM — بنك الأسئلة ومحاولات الـ100/150
+  registerExamRoutes(app, db, auth)
 
   app.setNotFoundHandler((_req, reply) => {
     return reply.code(404).send({ errorAr: 'المسار غير موجود' })

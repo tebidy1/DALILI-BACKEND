@@ -110,7 +110,10 @@ describe('دليل بصوت — دورة كاملة', () => {
     // خصوصيّة ٢ب: الخادم يركّب fileUrl عند القراءة — العضو بتوقيع أصل (بلا s=)
     expect((got.json().guide as { audio?: unknown }).audio).toEqual({
       ...audio,
-      fileUrl: expect.stringMatching(/^\/files\/voxAudioFile000001\?e=\d+&c=[^&]+$/),
+      // مطلقٌ بقاعدة الخادم منذ 2026-09-30 (فصل دومين الويب عن الـAPI): الرابط
+      // النسبيّ كان يُحلّ على أصل الويب فيردّ HTML لا ملفًّا. الشهادة تُعدَّل
+      // لا تُحذف — وتبقى تُثبت التوقيع والانتهاء كما كانت
+      fileUrl: expect.stringMatching(/^https?:\/\/[^/]+\/files\/voxAudioFile000001\?e=\d+&c=[^&]+$/),
     })
 
     const share = await app.inject({ method: 'POST', url: `/api/guides/${id}/share`, headers: { cookie } })
@@ -119,7 +122,10 @@ describe('دليل بصوت — دورة كاملة', () => {
     // والضيف بتوقيع مقيَّد برمز المشاركة نفسه
     expect((pub.json().guide as { audio?: unknown }).audio).toEqual({
       ...audio,
-      fileUrl: expect.stringMatching(new RegExp(`^/files/voxAudioFile000001\\?e=\\d+&s=${token}&c=[^&]+$`)),
+      // ورابط الضيف كذلك مطلق — بنطاق مشاركته كما كان (2026-09-30)
+      fileUrl: expect.stringMatching(
+        new RegExp(`^https?://[^/]+/files/voxAudioFile000001\\?e=\\d+&s=${token}&c=[^&]+$`),
+      ),
     })
   })
 })

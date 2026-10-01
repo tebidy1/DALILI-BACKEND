@@ -42,3 +42,39 @@ describe('روابط الملفّات الموقَّعة', () => {
     expect(s.verify(id, { e: 'NaN', c: q.c }).ok).toBe(false)
   })
 })
+
+// علّة 2026-09-30 (بلاغ المالك «اللقطات لا تظهر في الدليل»، وتشمل الإضافة):
+// الرابط كان نسبيًّا دائمًا، والعمارة تفترض أنّ الويب والـAPI أصلٌ واحد
+// (‏DEPLOYMENT.md §٢١٨). بعد فصل الدومينين صار `/files/<id>` يُحلّ على أصل
+// **الويب** فيردّ صفحة HTML لا صورة ⇒ `img.onload` لا يقع ⇒ لوحةٌ فارغة.
+// العلاج في موضعٍ واحد: الخادم يوقّع **مطلقًا** من `PUBLIC_BASE` — فيُصلح
+// كلّ عميل (ويب · إضافة · ديسكتوب) بلا إعادة بناء أيٍّ منها.
+describe('قاعدة الخادم في رابط الملفّ (فصل دومين الويب عن الـAPI)', () => {
+  it('الرابط يخرج مطلقًا بقاعدة الخادم — أصلًا وحصّةً', () => {
+    const s = makeFileSigner('secret-1234567890', () => T0, 'https://apidaleel.example.com')
+    expect(s.original('abcDEF12345')).toMatch(
+      /^https:\/\/apidaleel\.example\.com\/files\/abcDEF12345\?/,
+    )
+    expect(s.shared('abcDEF12345', 'tok_12345678')).toMatch(
+      /^https:\/\/apidaleel\.example\.com\/files\/abcDEF12345\?/,
+    )
+  })
+
+  it('التوقيع لا يشمل المضيف — نقلُ الدومين لا يُبطل رابطًا موقَّعًا', () => {
+    const withBase = makeFileSigner('secret-1234567890', () => T0, 'https://apidaleel.example.com')
+    const { id, q } = parse(withBase.original('abcDEF12345'))
+    expect(withBase.verify(id, q)).toEqual({ ok: true })
+    // الحارس نفسه بلا قاعدة يقبل التوقيع — البصمة على المعرّف والانتهاء فقط
+    expect(makeFileSigner('secret-1234567890', () => T0).verify(id, q)).toEqual({ ok: true })
+  })
+
+  it('شرطةٌ مائلة زائدة في القاعدة لا تُنتج «//files»', () => {
+    const s = makeFileSigner('secret-1234567890', () => T0, 'https://apidaleel.example.com/')
+    expect(s.original('abcDEF12345')).toMatch(/^https:\/\/apidaleel\.example\.com\/files\//)
+  })
+
+  it('بلا قاعدة يبقى نسبيًّا — نشرُ الأصل الواحد لا يتغيّر سلوكه', () => {
+    const s = makeFileSigner('secret-1234567890', () => T0)
+    expect(s.original('abcDEF12345')).toMatch(/^\/files\/abcDEF12345\?/)
+  })
+})

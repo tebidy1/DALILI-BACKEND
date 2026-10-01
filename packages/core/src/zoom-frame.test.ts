@@ -9,16 +9,15 @@ describe('zoomFrame — تكبير تكيّفي يوسّط العنصر المح
     // مركز العنصر (بالطبقة: 200,100) يقع بعد التحويل في مركز النافذة (200,150)
     expect(f.scale * 200 + f.translateX).toBeCloseTo(200) // viewW/2
     expect(f.scale * 100 + f.translateY).toBeCloseTo(150) // viewH/2
-    expect(f.translateX).toBeCloseTo(-600)
-    expect(f.translateY).toBeCloseTo(-250)
+    expect(f.translateX).toBeCloseTo(-300)
+    expect(f.translateY).toBeCloseTo(-100)
   })
 
   it('عنصر كبير عند ركن اللقطة: تكبير دون السقف وقصّ الإزاحة يمنع الحواف الفارغة', () => {
     // عنصر كبير عند الركن الأعلى-الأيسر — التوسيط سيكشف فراغًا، فتُقصّ الإزاحة للصفر
     const f = zoomFrame({ x: 0, y: 0, w: 200, h: 100 }, 1000, 500, 400, 300)!
-    expect(f.scale).toBeGreaterThanOrEqual(ZOOM_MIN)
-    expect(f.scale).toBeLessThan(ZOOM_MAX)
-    expect(f.scale).toBeCloseTo(2.75)
+    // fill 0.30 (طلب المالك 2026-09-29): fit = min(1.5, 2.25) = 1.5 → يرتد على الحد الأدنى ٢×
+    expect(f.scale).toBe(ZOOM_MIN)
     expect(f.translateX).toBe(0) // الحافة اليسرى مثبّتة — لا فراغ
     expect(f.translateY).toBe(0) // الحافة العليا مثبّتة — لا فراغ
   })
@@ -33,8 +32,8 @@ describe('zoomFrame — تكبير تكيّفي يوسّط العنصر المح
     // صورة ٢٠٠٠×٢٠٠ في نافذة طويلة ٤٠٠×٤٠٠ — الطبقة أقصر من النافذة حتى بعد التكبير
     const f = zoomFrame({ x: 950, y: 90, w: 100, h: 20 }, 2000, 200, 400, 400)!
     expect(f.scale).toBe(ZOOM_MAX)
-    // layerH = 400*200/2000 = 40 ؛ coverH = 4*40 = 160 < 400 → توسيط: (400-160)/2 = 120
-    expect(f.translateY).toBeCloseTo(120)
+    // layerH = 400*200/2000 = 40 ؛ coverH = 2.5*40 = 100 < 400 → توسيط: (400-100)/2 = 150
+    expect(f.translateY).toBeCloseTo(150)
   })
 
   it('مدخلات غير صالحة (صورة/نافذة صفرية أو مستطيل صفري) لا تُنتج إطارًا', () => {

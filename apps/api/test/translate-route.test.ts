@@ -115,7 +115,9 @@ describe('مسار ترجمة الدليل TRNS-01', () => {
       expect(tx.translations!.en!.meta.provider).toBe('fake:tx')
       expect(tx.updatedAt).toBe(beforeUpdatedAt) // مشتقّة لا محتوى — لا رفع ختم
       // انحدار بلاغ 2026-09-25: روابط صور الرد موقَّعة (e+c) كمسار القراءة — وإلا انكسرت الصور بالمحرر
-      expect(tx.steps[0]!.screenshot!.fileUrl).toMatch(/^\/files\/shot0001\?e=\d+&c=/)
+      // مطلقٌ بقاعدة الخادم منذ 2026-09-30 (فصل دومين الويب عن الـAPI) —
+      // الشهادة على التوقيع باقية كما هي، والمضيف وحده أُضيف
+      expect(tx.steps[0]!.screenshot!.fileUrl).toMatch(/^https?:\/\/[^/]+\/files\/shot0001\?e=\d+&c=/)
 
       const after = await app.inject({ method: 'GET', url: `/api/guides/${id}`, headers: { cookie } })
       const afterTx = (after.json().guide as { translations?: { en?: { items: Record<string, string> } } }).translations

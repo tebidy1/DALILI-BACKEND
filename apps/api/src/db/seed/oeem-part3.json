@@ -1,0 +1,392 @@
+[
+  {
+    "domain": "neurology",
+    "difficulty": 2,
+    "stem": "A 68-year-old man arrives 90 minutes after the sudden onset of right-sided weakness and slurred speech. Blood pressure is 168/92 mmHg, glucose is 112 mg/dL, and non-contrast CT of the head shows no hemorrhage. He has no contraindications to thrombolysis. What is the most appropriate next step?",
+    "options": [
+      "Aspirin 300 mg orally and admission to the ward",
+      "IV alteplase 0.9 mg/kg (maximum 90 mg) now",
+      "IV unfractionated heparin infusion",
+      "Repeat CT in 24 hours before starting any treatment"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "ضمن 4.5 ساعة من بداية الأعراض وبغياب الموانع، العلاج هو ألتيبلاز (Alteplase) وريدياً 0.9 ملغ/كغ بحد أقصى 90 ملغ، مع هدف زمن الباب إلى الإبرة 60 دقيقة."
+  },
+  {
+    "domain": "neurology",
+    "difficulty": 3,
+    "stem": "A 62-year-old hypertensive man presents with sudden headache and left hemiparesis. CT shows a 30 mL right basal ganglia hemorrhage with no intraventricular extension. Blood pressure is 212/110 mmHg. What is the most appropriate blood pressure target?",
+    "options": [
+      "Maintain systolic pressure above 220 mmHg to preserve cerebral perfusion",
+      "Lower systolic pressure rapidly to below 110 mmHg",
+      "Lower systolic pressure carefully to approximately 140 mmHg with an IV infusion such as nicardipine",
+      "No intervention because blood pressure elevation after hemorrhage is expected"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "في النزف داخل الدماغ العفوي مع ضغط انقباضي بين 150-220 ملم زئبق، يُخفَّض الضغط بحذر إلى نحو 140 ملم زئبق بتسريب وريدي مثل النيكارديبين (Nicardipine) مع تجنب الانخفاض السريع."
+  },
+  {
+    "domain": "neurology",
+    "difficulty": 1,
+    "stem": "A 24-year-old woman is brought to the emergency department with a generalized tonic-clonic seizure that has continued for 6 minutes. Intravenous access is obtained and oxygen saturation is 96% on room air. What is the first-line treatment?",
+    "options": [
+      "IV lorazepam 0.1 mg/kg",
+      "IV phenytoin 20 mg/kg loading dose",
+      "IM haloperidol 5 mg",
+      "IV magnesium sulfate 4 g"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "الخط الأول في الصرع المستمر بنزوديازيبين وريدي، وهو اللورازيبام (Lorazepam) 0.1 ملغ/كغ بحد أقصى 4 ملغ لكل جرعة."
+  },
+  {
+    "domain": "neurology",
+    "difficulty": 2,
+    "stem": "A 45-year-old woman presents 14 hours after the sudden onset of the worst headache of her life during exertion, with vomiting and neck stiffness. Non-contrast CT of the head is normal and she is neurologically intact. What is the most appropriate next step?",
+    "options": [
+      "Discharge home with simple analgesia",
+      "MRI of the brain with contrast",
+      "CT angiography of the head as the sole next test",
+      "Lumbar puncture looking for xanthochromia and red blood cells"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "عند الشك بالنزف تحت العنكبوتية (SAH) وعكس CT سلبي، تُجرى بزل قطني (LP) بحثاً عن الخضّاب القصفّي (Xanthochromia)؛ ويأتي التصوير الوعائي بعد تأكيد النزف."
+  },
+  {
+    "domain": "neurology",
+    "difficulty": 1,
+    "stem": "A 30-year-old man is assessed after a motorcycle collision. He opens his eyes to voice, gives confused answers when speaking, and obeys commands. What is his Glasgow Coma Scale score?",
+    "options": [
+      "11",
+      "13",
+      "14",
+      "15"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "فتح العينين للصوت 3 + الاستجابة اللفظية المشوشة 4 + طاعة الأوامر 6 = 13 على مقياس غلاسكو للغيبوبة (GCS)."
+  },
+  {
+    "domain": "orthopedics",
+    "difficulty": 3,
+    "stem": "A 28-year-old man has a closed tibial shaft fracture from a crush injury. He reports pain out of proportion to the injury that worsens with passive toe stretch and is unrelieved by analgesia. Pulses are palpable. Which of the following would confirm the suspected diagnosis?",
+    "options": [
+      "Repeat radiographs showing fracture displacement",
+      "Doppler ultrasound showing absent pedal flow",
+      "Intracompartmental pressure measurement greater than 30 mmHg",
+      "Serum creatine kinase above 5,000 U/L"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "الألم غير المتناسب مع الإصابة هو العلامة المبكرة لمتلازمة الحجرة (Compartment syndrome)، ويؤكدها قياس ضغط الحجرة؛ وتجاوز 30 ملم زئبق يستدعي بضع اللفافة (Fasciotomy) العاجل."
+  },
+  {
+    "domain": "orthopedics",
+    "difficulty": 2,
+    "stem": "A 35-year-old man sustains a posterior dislocation of the hip in a motor vehicle collision; the limb is shortened, adducted, and internally rotated. He is hemodynamically stable. Why must closed reduction be performed urgently, ideally within 6 hours?",
+    "options": [
+      "To reduce the risk of avascular necrosis of the femoral head",
+      "To prevent injury to the femoral artery",
+      "To prevent heterotopic ossification",
+      "To reduce the risk of deep vein thrombosis"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "الخلع الخلفي للمفصل الحوضي حالة إسعافية؛ التأخير أكثر من 6 ساعات يزيد خطر النخر اللاوعائي لرأس الفخذ (Avascular necrosis)."
+  },
+  {
+    "domain": "orthopedics",
+    "difficulty": 2,
+    "stem": "A 24-year-old rugby player fell on his outstretched hand and has tenderness in the anatomical snuffbox. X-rays of the wrist including scaphoid views are normal. What is the most appropriate management?",
+    "options": [
+      "Discharge without immobilization and allow return to play in 3 days",
+      "Apply a thumb spica splint and arrange repeat imaging in 10-14 days",
+      "Refer for immediate wrist physiotherapy and strengthening",
+      "Apply an ulnar gutter splint and review only if symptoms persist beyond 6 weeks"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "مع ضساط الصندوق التشريحي والأشعة السلبية يبقى الشك بكسر الزورقي (Scaphoid) قائماً، فيوضع جبيرة إبهام (Thumb spica) مع إعادة التصوير بعد 10-14 يوماً لتجنب النخر والزمام الكاذب."
+  },
+  {
+    "domain": "orthopedics",
+    "difficulty": 2,
+    "stem": "A 32-year-old man presents 1 hour after an open fracture of the tibia with a 3 cm wound (Gustilo type II). The wound is covered with a sterile saline-soaked dressing and the leg is splinted. What is the most appropriate additional initial management?",
+    "options": [
+      "Primary closure of the wound in the emergency department with sutures",
+      "Oral cephalexin and outpatient follow-up in 48 hours",
+      "IV cefazolin, tetanus prophylaxis, and urgent operative debridement and irrigation",
+      "Irrigation with hydrogen peroxide followed by a dry dressing and discharge"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "الكسر المفتوح يتطلب مضاداً حيوياً وريدياً مثل السيفتازولين (Cefazolin) مع تحصين الكزاز وتنضيراً وغسلاً جراحياً عاجلاً، مع تجنب الإغلاق الأولي في قسم الطوارئ."
+  },
+  {
+    "domain": "orthopedics",
+    "difficulty": 1,
+    "stem": "A 25-year-old woman presents after a low-speed rear-end collision. She is alert with GCS 15, has no midline cervical tenderness, no focal neurological deficit, no intoxication, and no painful distracting injury, and she can actively rotate her neck fully. What is the most appropriate management?",
+    "options": [
+      "CT of the cervical spine",
+      "MRI of the cervical spine",
+      "Rigid cervical collar to be worn for 2 weeks",
+      "Discharge without cervical spine imaging"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "باستيفاء معايير NEXUS الخمسة السلبية يمكن استبعاد إصابة الرقبة سريرياً دون تصوير، وتتيح قاعدة الكنديين (Canadian C-spine rule) ذلك أيضاً عند الدوران الكامل مع آلية منخفضة الخطورة."
+  },
+  {
+    "domain": "gastrointestinal",
+    "difficulty": 2,
+    "stem": "A 55-year-old man with alcoholic cirrhosis presents with hematemesis and melena. Heart rate is 118/min and blood pressure is 88/52 mmHg. He has known esophageal varices. After fluid resuscitation, which adjunctive therapy reduces mortality?",
+    "options": [
+      "IV terlipressin plus prophylactic IV ceftriaxone",
+      "IV pantoprazole infusion as the sole definitive therapy",
+      "Urgent flexible sigmoidoscopy",
+      "IV vitamin K and fresh frozen plasma alone"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "في النزف الوريدي المريئي لدى المصاب بالتشمع يُعطى تيرليبرسين (Terlipressin) مع مضاد حيوي وقائي وريدي مثل السيفترياكسون (Ceftriaxone)، لأن كليهما يقلل الوفيات."
+  },
+  {
+    "domain": "gastrointestinal",
+    "difficulty": 3,
+    "stem": "A 50-year-old man develops severe retrosternal chest pain and fever shortly after an episode of forceful vomiting. He has crepitus in the neck and a crunching sound over the precordium. Boerhaave syndrome is suspected. What is the best initial diagnostic test?",
+    "options": [
+      "Barium swallow as the initial test",
+      "CT of the chest with oral water-soluble contrast",
+      "ECG and serial troponins only",
+      "Plain abdominal radiograph"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "يُشخَّص تمزق المريء العفوي (Boerhaave) بالأشعة المقطعية مع مادة ظليلة مائية الذوبان عن طريق الفم، ويُتجنب الباريوم عند الشك بالانثقاب لخطر التهاب المنصف."
+  },
+  {
+    "domain": "gastrointestinal",
+    "difficulty": 1,
+    "stem": "A 22-year-old woman presents with right lower quadrant pain. She has migration of pain from the umbilicus, anorexia, nausea, tenderness with rebound in the right lower quadrant, temperature 37.9°C, and WBC 12.5 x 10^9/L. What is her Alvarado score?",
+    "options": [
+      "6",
+      "7",
+      "9",
+      "10"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "حساب مقياس ألفارادو: هجرة الألم 1 + فقدان الشهية 1 + الغثيان 1 + ألم الحفرة الحرقفية اليمنى 2 + الألم الارتدادي 1 + الحمى 1 + كثافة الكريات البيضاء 2 = 9، وهي درجة احتمال عالٍ للتهاب الزائدة الدودية."
+  },
+  {
+    "domain": "gastrointestinal",
+    "difficulty": 2,
+    "stem": "A 70-year-old man with atrial fibrillation presents with severe periumbilical pain that is out of proportion to a soft abdomen on examination. Lactate is mildly elevated at 2.8 mmol/L. What is the most appropriate next step?",
+    "options": [
+      "Barium enema",
+      "Abdominal ultrasound",
+      "Discharge with oral analgesia and review in 24 hours",
+      "Urgent CT angiography of the abdomen"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "ألم بطني غير متناسب مع الفحص لدى مريض الرجفان الأذيني يوحي بنقص التروية المساريقية الحاد، والخطوة العاجلة هي تصوير مقطعي بالصبغة الوعائية (CT angiography)."
+  },
+  {
+    "domain": "nephrology_urology",
+    "difficulty": 2,
+    "stem": "A 30-year-old man is extracted after being trapped under collapsed rubble for 8 hours. He has diffuse muscle pain, dark brown urine, and creatine kinase of 25,000 U/L. What is the most appropriate fluid strategy?",
+    "options": [
+      "Fluid restriction to prevent pulmonary edema",
+      "Aggressive IV isotonic saline while avoiding potassium-containing fluids",
+      "IV 5% dextrose only until the urine clears",
+      "Early potassium replacement to prevent cardiac arrhythmias"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "انحلال الربيدات (Rhabdomyolysis) يتطلب سوائل وريدية وفيرة بمحلول ملح متوازن مع مراقبة النتاج البولي، مع تجنب المحاليل الحاوية على البوتاسيوم لخطر فرط البوتاسيوم المهدد للقلب."
+  },
+  {
+    "domain": "nephrology_urology",
+    "difficulty": 1,
+    "stem": "A 35-year-old man presents with his first episode of severe loin-to-groin colicky pain with microscopic hematuria and no fever. What is the appropriate imaging modality and first-line analgesia?",
+    "options": [
+      "Non-contrast CT of the kidneys, ureters and bladder with an NSAID such as ketorolac",
+      "Contrast-enhanced CT with opioid-only analgesia",
+      "Plain abdominal film with an anticholinergic agent",
+      "Renal ultrasound with an oral benzodiazepine"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "المعيار الذهبي لتشخيص مغص الكلية هو أشعة مقطعية دون صبغة (CT KUB)، ومضادات الالتهاب غير الستيرويدية مثل الكيتورولاك (Ketorolac) هي مسكن الخط الأول."
+  },
+  {
+    "domain": "nephrology_urology",
+    "difficulty": 2,
+    "stem": "A 58-year-old man with chronic kidney disease presents with generalized weakness and palpitations. ECG shows peaked T waves, a widened QRS complex, and the serum potassium is 7.4 mmol/L. What is the first IV drug to give?",
+    "options": [
+      "IV furosemide 40 mg",
+      "Oral sodium polystyrene sulfonate",
+      "IV calcium gluconate 10 mL of 10%",
+      "IV sodium bicarbonate alone"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "مع تغيرات ECG في فرط البوتاسيوم يجب أولاً تثبيت عضلة القلب بكالسيوم غلوكونات (Calcium gluconate) وريدياً قبل أي إجراء لخفض البوتاسيوم."
+  },
+  {
+    "domain": "nephrology_urology",
+    "difficulty": 1,
+    "stem": "A 15-year-old boy presents with 3 hours of sudden severe left scrotal pain and vomiting. The left testis is high-riding and swollen, and the cremasteric reflex is absent. What is the most appropriate management?",
+    "options": [
+      "Doppler ultrasound before any treatment, with discharge if perfusion is normal",
+      "Oral analgesia and urology clinic review in one week",
+      "Antibiotics for presumed epididymo-orchitis",
+      "Immediate urology consultation for surgical exploration without delaying for imaging"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "التواء الخصية (Testicular torsion) حالة إسعافية؛ الألم المفاجئ مع غياب الانعكاس القرمصي يستدعي الاستكشاف الجراحي الفوري دون انتظار التصوير، وتُنقذ الخصية إن فُكّ التواؤها خلال 6 ساعات."
+  },
+  {
+    "domain": "surgery_plastic",
+    "difficulty": 3,
+    "stem": "A 60-year-old diabetic man has rapidly spreading leg pain out of proportion to examination findings, with crepitus, hemorrhagic bullae, and dusky skin. He is hypotensive. CT shows fascial thickening with gas along the fascial planes. What is the definitive management?",
+    "options": [
+      "IV broad-spectrum antibiotics alone with observation",
+      "Hyperbaric oxygen therapy alone",
+      "Repeated image-guided needle aspiration of the bullae",
+      "Immediate radical surgical debridement with broad-spectrum IV antibiotics"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "التهاب اللفافة النخرية (Necrotizing fasciitis) علاجه الحاسم هو التنضير الجراحي الواسع العاجل مع مضادات حيوية وريدية واسعة الطيف، وأي تأخير يرفع الوفيات بشكل كبير."
+  },
+  {
+    "domain": "surgery_plastic",
+    "difficulty": 2,
+    "stem": "A 65-year-old diabetic man presents with 2 days of scrotal pain, swelling, foul odor, and crepitus in the perineum, with fever and tachycardia. What is the most likely diagnosis and appropriate management?",
+    "options": [
+      "Epididymo-orchitis; treat with oral antibiotics as an outpatient",
+      "Incarcerated inguinal hernia; elective repair in 6 weeks",
+      "Fournier gangrene; broad-spectrum IV antibiotics with urgent surgical debridement",
+      "Scrotal cellulitis; topical antibiotics and warm compresses"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "غغرين فورنييه (Fournier gangrene) هو التهاب لفافة نخرية للعجان والأعضاء التناسلية وشائع لدى مرضى السكري، وعلاجه التنضير الجراحي العاجل مع مضادات حيوية واسعة الطيف."
+  },
+  {
+    "domain": "surgery_plastic",
+    "difficulty": 2,
+    "stem": "A 60-year-old woman presents with vomiting, abdominal distension, and obstipation. Radiographs show dilated small bowel loops with air-fluid levels and no free air. She is afebrile with mild tenderness, no peritonism, and a normal lactate. What is the most appropriate initial management?",
+    "options": [
+      "Immediate laparotomy for all cases of small bowel obstruction",
+      "Nasogastric decompression with IV fluids and close monitoring",
+      "Oral clear fluids and outpatient review",
+      "Urgent colonoscopy for decompression"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "انسداد الأمعاء الدقيقة غير المختنق يُدار أولياً بسياسة التنقيط والسحب (Drip and suck) أي أنبوب أنفي معوي مع سوائل وريدية، وتدخل الجراحة عند علامات الخنق كالألم المستمر والحمى وارتفاع اللاكتات."
+  },
+  {
+    "domain": "surgery_plastic",
+    "difficulty": 1,
+    "stem": "A 40-year-old man presents 2 hours after a dog bite to his hand with two deep puncture wounds. There is no tendon or bone involvement. What is the most appropriate management?",
+    "options": [
+      "Topical mupirocin only with no other treatment",
+      "Primary closure with interrupted sutures and oral metronidazole",
+      "No prophylactic antibiotics because the wound is small",
+      "Copious irrigation, amoxicillin-clavulanate prophylaxis, tetanus update, and leave the hand wound unclosed"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "عضة اليد أو العضة العميقة تحتاج وقاية بأموكسيسيلين-كلافولانات (Amoxicillin-clavulanate)، وجروح اليد تُترك عادة دون إغلاق أولي لارتفاع خطر العدوى."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 2,
+    "stem": "A 70-year-old man on warfarin has active bleeding from the posterior nasal cavity despite 15 minutes of direct pressure and correctly placed anterior packing. Blood is running down the pharynx and he is spitting it out. What is the most appropriate next step?",
+    "options": [
+      "Silver nitrate cautery of Little's area",
+      "Discharge with nasal drops and review in 48 hours",
+      "Posterior balloon or Foley catheter tamponade with admission for monitoring",
+      "Ice packs to the bridge of the nose only"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "الرعاف الخلفي لا يتوقف بالتامين الأمامي، ويتطلب بالوناً خلفياً أو قسطرة فولي (Foley) مع إدخال المريض للمتابعة لخطر إعاقة الطريق الهوائي والشفط."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 2,
+    "stem": "A 20-year-old woman has 3 days of severe left-sided sore throat, a muffled 'hot potato' voice, and trismus. The left tonsil is bulging with deviation of the uvula to the right, and fluctuance is felt on examination. What is the most appropriate management?",
+    "options": [
+      "Needle aspiration or incision and drainage plus antibiotics",
+      "Oral antibiotics alone without drainage",
+      "Elective tonsillectomy in 6 weeks as first-line treatment",
+      "Antihistamines and a proton pump inhibitor"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "خراج اللوزة الحنكية (Peritonsillar abscess) يسبب صوت البطاطا الساخنة والتريزموس وانحراف اللهاة، وعلاجه الأولي هو التفريغ بالإبرة أو الشق مع مضاد حيوي."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 1,
+    "stem": "A 40-year-old man with a lower molar dental infection develops bilateral submandibular swelling, a raised floor of the mouth, a muffled voice, and drooling. He is maintaining his oxygen saturation but the swelling is progressing. What is the priority in management?",
+    "options": [
+      "Immediate dental extraction in the emergency department",
+      "Early definitive airway management, with anesthesia and surgical airway backup",
+      "Outpatient oral antibiotics and review in 48 hours",
+      "Warm compresses, analgesia, and gargles"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "ذبحة لودفيغ (Ludwig angina) التهاب لفافي ثنائي تحت الفك يهدد الطريق الهوائي، وتأمين المسلك الهوائي مبكراً مع جاهزية فتح رغامى جراحي هو الأولوية القصوى."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 2,
+    "stem": "A 48-year-old woman wakes with sudden hearing loss in the left ear without pain or discharge. Both tympanic membranes are normal, and tuning fork tests suggest sensorineural loss. What is the most appropriate management?",
+    "options": [
+      "Watchful waiting for 2-4 weeks before any intervention",
+      "Oral antibiotics for occult otitis media",
+      "Urgent high-dose corticosteroids with early ENT referral",
+      "Decongestants and antihistamines"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "فقدان السمع الحسي العصبي المفاجئ حالة إسعافية أنفية أذنية، والكورتيكوستيرويدات عالية الجرعة المبكرة مثل بريدنيزولون (Prednisolone) تعطي أفضل فرصة للشفاء."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 3,
+    "stem": "A 72-year-old man with atrial fibrillation has sudden painless loss of vision in the right eye 90 minutes ago. Fundoscopy shows a pale retina with a cherry-red spot at the macula. What is the most appropriate immediate management?",
+    "options": [
+      "Immediate intraocular pressure-lowering measures such as topical timolol and digital ocular massage",
+      "Observation overnight and review in the morning",
+      "Topical antibiotic drops four times daily",
+      "Oral antihistamines and reassurance"
+    ],
+    "answerIndex": 0,
+    "explanationAr": "انسداد الشريان الشبكي المركزي (CRAO) سكتة العين؛ يُخفَّض الضغط داخل العين فوراً بتيمولول موضعي (Timolol) وأسيتازولاميد ومساج العين الرقمي، مع تقييم السبب."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 1,
+    "stem": "A 55-year-old myopic man describes new flashes and floaters in his left eye with a 'curtain' progressing across the lower visual field. The eye is white and painless with intact central vision. What is the most likely diagnosis requiring urgent ophthalmology referral?",
+    "options": [
+      "Acute angle-closure glaucoma",
+      "Central retinal vein occlusion",
+      "Optic neuritis",
+      "Retinal detachment"
+    ],
+    "answerIndex": 3,
+    "explanationAr": "الومضات والزوابع مع ستارة متحركة في مجال الرؤية علامات انفصال الشبكية (Retinal detachment)، وهي إحالة عاجلة للعيون قبل امتداد الانفصال إلى البقعة."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 2,
+    "stem": "A 65-year-old woman develops a severely painful red right eye, blurred vision, and halos around lights shortly after leaving a cinema. The cornea is cloudy, the pupil is mid-dilated and unreactive, and the eye is firm to palpation. What is the most likely diagnosis?",
+    "options": [
+      "Acute conjunctivitis treated with topical antibiotics",
+      "Acute angle-closure glaucoma requiring urgent intraocular pressure reduction",
+      "Anterior uveitis treated with oral NSAIDs",
+      "Corneal abrasion treated with an eye patch"
+    ],
+    "answerIndex": 1,
+    "explanationAr": "الزرق مغلق الزاوية الحاد (Acute angle-closure glaucoma) عين حمراء مؤلمة مع بؤبؤ متوسط الاتساع وقرنية معتمة، ويتطلب خفضاً عاجلاً للضغط داخل العين بالأسيتازولاميد (Acetazolamide) والقطرات الموضعية."
+  },
+  {
+    "domain": "ent_eye_derm",
+    "difficulty": 3,
+    "stem": "A 30-year-old woman who started allopurinol 10 days ago now has fever, painful oral and ocular erosions, and targetoid skin lesions progressing to flaccid blisters. Nikolsky sign is positive and skin detachment involves less than 10% of the body surface area. What is the most important immediate action?",
+    "options": [
+      "Continue allopurinol and add oral antihistamines",
+      "Treat as an outpatient with topical steroids",
+      "Stop the offending drug immediately and admit to a burn unit or intensive care",
+      "IV antibiotics as the sole definitive therapy"
+    ],
+    "answerIndex": 2,
+    "explanationAr": "متلازمة ستيفنز-جونسون (SJS) تعني انفصال الجلد بأقل من 10% من سطح الجسم مع علامة نيكولسكي الموجبة؛ الأساس هو إيقاف الدواء المسبب فوراً (Allopurinol) وإدخال وحدة حروق أو عناية مركزة."
+  }
+]

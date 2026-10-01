@@ -202,3 +202,48 @@ export const deviceCodes = sqliteTable('device_codes', {
   createdAt: text('created_at').notNull(),
   expiresAt: text('expires_at').notNull(),
 })
+
+/** EXAM (ترحيل 0021): بنك أسئلة OEEM — options حصيرة خيارات JSON، والشرح عربي (موقع القيمة التعليمية) */
+export const examQuestions = sqliteTable('exam_questions', {
+  id: text('id').primaryKey(),
+  domain: text('domain').notNull(),
+  difficulty: integer('difficulty').notNull().default(2),
+  stem: text('stem').notNull(),
+  options: text('options').notNull(),
+  answerIndex: integer('answer_index').notNull(),
+  explanationAr: text('explanation_ar').notNull().default(''),
+  active: integer('active').notNull().default(1),
+})
+
+/** EXAM: محاولة اختبار شامل — 100 سؤال و150 دقيقة بموعد نهائي محسوم على الخادم؛
+ *  answers/flagged JSON محفوظة تلقائيًّا بعد كل إجابة (انهيار لا يُفقِد المحاولة) */
+export const examAttempts = sqliteTable('exam_attempts', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  /** 'in_progress' | 'completed' */
+  status: text('status').notNull().default('in_progress'),
+  startedAt: text('started_at').notNull(),
+  deadlineAt: text('deadline_at').notNull(),
+  submittedAt: text('submitted_at'),
+  score: integer('score'),
+  total: integer('total').notNull(),
+  questionIds: text('question_ids').notNull(),
+  answers: text('answers').notNull().default('{}'),
+  flagged: text('flagged').notNull().default('[]'),
+  perDomain: text('per_domain').notNull().default('[]'),
+  spentMs: integer('spent_ms').notNull().default(0),
+})
+
+/** EXAM: حالة نقاط التدريب لكل مستخدم — صفّ كسول عند أول إجابة (نمط assignment_progress) */
+export const userExamState = sqliteTable('user_exam_state', {
+  userId: text('user_id').primaryKey(),
+  answeredTotal: integer('answered_total').notNull().default(0),
+  correctTotal: integer('correct_total').notNull().default(0),
+  creditsEarned: integer('credits_earned').notNull().default(0),
+  creditsUsed: integer('credits_used').notNull().default(0),
+  streak: integer('streak').notNull().default(0),
+  bestStreak: integer('best_streak').notNull().default(0),
+  /** JSON {domain: {answered, correct}} — يغذي خدمة أسئلة نقاط الضعف */
+  domainStats: text('domain_stats').notNull().default('{}'),
+  updatedAt: text('updated_at').notNull(),
+})
